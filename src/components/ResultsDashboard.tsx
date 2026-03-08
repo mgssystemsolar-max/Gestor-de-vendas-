@@ -1,8 +1,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { SolarAnalysisResult } from '../services/geminiService';
-import { Zap, DollarSign, Sun, TrendingUp, CheckCircle2 } from 'lucide-react';
+import { Zap, DollarSign, Sun, TrendingUp, CheckCircle2, FileDown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { gerarPropostaMGS } from '../services/pdfService';
+import { Button } from './ui/Button';
 
 interface ResultsDashboardProps {
   data: SolarAnalysisResult;
@@ -96,6 +98,13 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
                 <span className="block text-slate-500 text-xs uppercase tracking-wider">Tarifa</span>
                 <span className="font-semibold text-slate-900">R$ {data.tarifa_unitaria.toFixed(2)}/kWh</span>
               </div>
+            </div>
+            
+            <div className="mt-6 flex justify-end">
+              <Button onClick={() => gerarPropostaMGS(data)} className="w-full sm:w-auto">
+                <FileDown className="w-4 h-4 mr-2" />
+                Baixar Proposta PDF
+              </Button>
             </div>
           </CardContent>
         </Card>

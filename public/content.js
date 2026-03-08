@@ -51,3 +51,28 @@ setInterval(() => {
 // Tenta injetar imediatamente e também ao carregar
 injectMGSPanel();
 window.addEventListener('load', injectMGSPanel);
+
+// Função para o MGS COMMAND escrever e enviar mensagens sozinho
+function mgsSendMessage(texto) {
+    const chatInput = document.querySelector('div[contenteditable="true"][data-tab="10"]');
+    if (chatInput) {
+        chatInput.focus();
+        document.execCommand('insertText', false, texto);
+        
+        // Espera um pouco para o WhatsApp processar o texto e clica no botão de enviar
+        setTimeout(() => {
+            const sendBtn = document.querySelector('span[data-icon="send"]');
+            if (sendBtn) sendBtn.click();
+        }, 300);
+    } else {
+        console.error("MGS COMMAND: Não foi possível encontrar a caixa de texto do WhatsApp.");
+    }
+}
+
+// Listener para receber comandos do popup ou background script
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "PASTE_PROPOSAL") {
+    mgsSendMessage(request.data);
+    sendResponse({ status: "success" });
+  }
+});
