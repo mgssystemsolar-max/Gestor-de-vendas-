@@ -11,20 +11,13 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       {/* Header */}
-      <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="bg-orange-600 p-1.5 rounded-lg">
-              <Zap className="w-5 h-5 text-white" fill="currentColor" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">
-              MgS <span className="text-orange-500">SOLAR</span> COMMAND
-            </span>
-          </div>
-          <div className="text-xs sm:text-sm text-slate-400 font-medium">
-            Engenharia de Vendas Sênior
-          </div>
-        </div>
+      <header className="bg-gradient-to-br from-[#1a1a1b] to-[#333333] p-5 border-b-[3px] border-[#FFAB00] text-center shadow-[0_4px_10px_rgba(0,0,0,0.3)] sticky top-0 z-50">
+        <h1 className="m-0 text-[#FFAB00] font-sans text-[1.4rem] tracking-[2px] uppercase font-black" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
+          MGS SOLAR COMMAND
+        </h1>
+        <p className="mt-[5px] text-white text-[0.75rem] opacity-80 font-light">
+          SISTEMA DE GESTÃO E ENGENHARIA V.4.0
+        </p>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

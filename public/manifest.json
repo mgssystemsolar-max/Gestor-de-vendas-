@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "MGS SOLAR COMMAND",
+  "version": "1.0",
+  "description": "Painel de Controle de Vendas e Engenharia Solar - MgS System",
+  "permissions": ["storage", "activeTab"],
+  "content_scripts": [
+    {
+      "matches": ["https://web.whatsapp.com/*"],
+      "js": ["content.js"],
+      "css": ["style.css"]
+    }
+  ],
+  "action": {
+    "default_popup": "index.html"
+  }
+}
