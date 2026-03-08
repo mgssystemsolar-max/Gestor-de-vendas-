@@ -1,0 +1,5 @@
+{
+  "name": "MgS Solar Command",
+  "description": "Sistema de análise de viabilidade fotovoltaica e processamento de faturas de energia para MgS SYSTEM SOLAR.",
+  "requestFramePermissions": []
+}
