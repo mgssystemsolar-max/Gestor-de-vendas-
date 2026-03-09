@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { SolarAnalysisResult } from '../services/geminiService';
-import { Zap, DollarSign, Sun, TrendingUp, CheckCircle2, FileDown, Save } from 'lucide-react';
+import { Zap, DollarSign, Sun, TrendingUp, CheckCircle2, FileDown, Save, MessageCircle, Mic } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { gerarPropostaMGS } from '../services/pdfService';
 import { Button } from './ui/Button';
@@ -16,12 +16,17 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
   const [telefone, setTelefone] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [querMandarAudio, setQuerMandarAudio] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const cliente = params.get('cliente');
+    const cliente = params.get('cliente') || params.get('name');
+    const phone = params.get('phone');
     if (cliente) {
       setNome(cliente);
+    }
+    if (phone) {
+      setTelefone(phone);
     }
   }, []);
 
@@ -71,6 +76,35 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const enviarTudoTexto = () => {
+    if (!telefone) {
+      alert("Preencha o telefone do cliente primeiro.");
+      return;
+    }
+    const texto = `Olá ${nome || 'Cliente'}, segue a análise do seu sistema solar...\n\n` +
+      `Potência Sugerida: ${data.potencia_sugerida_kwp} kWp\n` +
+      `Economia Mensal: R$ ${data.economia_mensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n` +
+      `Investimento Estimado: R$ ${data.investimento_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n` +
+      `Payback: ${data.payback_estimado}\n\n` +
+      `Qualquer dúvida estou à disposição!`;
+    const encodedText = encodeURIComponent(texto);
+    window.open(`https://wa.me/${telefone}?text=${encodedText}`, '_blank');
+  };
+
+  const enviarDadosPosAudio = () => {
+    if (!telefone) {
+      alert("Preencha o telefone do cliente primeiro.");
+      return;
+    }
+    const texto = `Conforme conversamos, aqui estão os dados do seu sistema:\n\n` +
+      `Potência Sugerida: ${data.potencia_sugerida_kwp} kWp\n` +
+      `Economia Mensal: R$ ${data.economia_mensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n` +
+      `Investimento Estimado: R$ ${data.investimento_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n` +
+      `Payback: ${data.payback_estimado}`;
+    const encodedText = encodeURIComponent(texto);
+    window.open(`https://wa.me/${telefone}?text=${encodedText}`, '_blank');
   };
 
   return (
@@ -189,11 +223,45 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
               )}
             </div>
 
-            <div className="mt-6 flex justify-end">
-              <Button onClick={() => gerarPropostaMGS({ ...data, nome })} className="w-full sm:w-auto">
-                <FileDown className="w-4 h-4 mr-2" />
-                Baixar Proposta PDF
-              </Button>
+            <div className="mt-8 pt-6 border-t border-slate-200">
+              <h4 className="text-sm font-semibold text-slate-900 mb-4">Ações de Contato</h4>
+              
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-4">
+                <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-700 mb-4">
+                  <input 
+                    type="checkbox" 
+                    checked={querMandarAudio}
+                    onChange={(e) => setQuerMandarAudio(e.target.checked)} 
+                    className="w-4 h-4 text-orange-600 rounded border-gray-300 focus:ring-orange-500"
+                  /> 
+                  Vou mandar áudio?
+                </label>
+
+                {querMandarAudio ? (
+                  <div className="space-y-4">
+                    <div className="bg-blue-50 text-blue-800 p-3 rounded-md text-sm border border-blue-100 flex items-start gap-2">
+                      <Mic className="w-5 h-5 shrink-0 mt-0.5" />
+                      <p><strong>Roteiro Sugerido:</strong> Fala {nome || '[Nome]'}, Márcio aqui. Analisei sua fatura e vi que você pode economizar R$ {data.economia_mensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} por mês. Vou te mandar os dados do sistema aqui embaixo...</p>
+                    </div>
+                    <Button onClick={enviarDadosPosAudio} className="w-full bg-[#25D366] hover:bg-[#1da851] text-white">
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Enviar Dados (Pós-Áudio)
+                    </Button>
+                  </div>
+                ) : (
+                  <Button onClick={enviarTudoTexto} className="w-full bg-[#25D366] hover:bg-[#1da851] text-white">
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Enviar Texto Completo Agora
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={() => gerarPropostaMGS({ ...data, nome })} className="w-full sm:w-auto" variant="outline">
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Baixar Proposta PDF
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -3,24 +3,36 @@ import { UploadSection } from './components/UploadSection';
 import { ResultsDashboard } from './components/ResultsDashboard';
 import { ManualInput } from './components/ManualInput';
 import { SolarAnalysisResult } from './services/geminiService';
-import { Zap, LayoutDashboard, Calculator } from 'lucide-react';
+import { Zap, LayoutDashboard, Calculator, MessageCircle } from 'lucide-react';
 import { CRM } from './components/CRM';
+import { WhatsAppIntegrationModal } from './components/WhatsAppIntegrationModal';
 
 function App() {
   const [analysisResult, setAnalysisResult] = useState<SolarAnalysisResult | null>(null);
   const [currentView, setCurrentView] = useState<'calculator' | 'crm'>('calculator');
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex flex-col">
       {/* Header */}
       <header className="bg-gradient-to-br from-[#1a1a1b] to-[#333333] border-b-[3px] border-[#FFAB00] text-center shadow-[0_4px_10px_rgba(0,0,0,0.3)] sticky top-0 z-50">
-        <div className="p-5">
-          <h1 className="m-0 text-[#FFAB00] font-sans text-[1.4rem] tracking-[2px] uppercase font-black" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
-            MGS SOLAR COMMAND
-          </h1>
-          <p className="mt-[5px] text-white text-[0.75rem] opacity-80 font-light">
-            SISTEMA DE GESTÃO E ENGENHARIA V.4.0
-          </p>
+        <div className="p-5 flex justify-between items-center max-w-7xl mx-auto">
+          <div className="flex-1 text-left">
+            <h1 className="m-0 text-[#FFAB00] font-sans text-[1.4rem] tracking-[2px] uppercase font-black" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
+              MGS SOLAR COMMAND
+            </h1>
+            <p className="mt-[5px] text-white text-[0.75rem] opacity-80 font-light">
+              SISTEMA DE GESTÃO E ENGENHARIA V.4.0
+            </p>
+          </div>
+          
+          <button 
+            onClick={() => setShowWhatsAppModal(true)}
+            className="hidden sm:flex items-center gap-2 bg-[#25D366] hover:bg-[#1da851] text-white px-4 py-2 rounded-md text-sm font-bold transition-colors shadow-md"
+          >
+            <MessageCircle className="w-4 h-4" />
+            Integração WhatsApp
+          </button>
         </div>
         
         {/* Navigation */}
@@ -46,6 +58,13 @@ function App() {
           >
             <LayoutDashboard className="w-4 h-4 mr-2" />
             CRM / Leads
+          </button>
+          <button 
+            onClick={() => setShowWhatsAppModal(true)}
+            className="sm:hidden flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors text-[#25D366] hover:bg-[#333]"
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
+            WhatsApp
           </button>
         </div>
       </header>
@@ -102,6 +121,10 @@ function App() {
           </p>
         </div>
       </footer>
+
+      {showWhatsAppModal && (
+        <WhatsAppIntegrationModal onClose={() => setShowWhatsAppModal(false)} />
+      )}
     </div>
   );
 }

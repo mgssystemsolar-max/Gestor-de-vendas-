@@ -12,15 +12,19 @@ interface Lead {
   ultimo_contato: string;
   contacted?: boolean;
   valor_sistema: number;
+  notas?: string;
+  historico?: { data: string; acao: string }[];
+  prioridade?: "NORMAL" | "URGENTE";
+  ultima_mensagem?: string;
 }
 
 // Mock data
 const initialLeads: Lead[] = [
-  { id: '1', nome: 'João Silva', consumo: 450, telefone: '5511999999999', status: 'Novo', source: 'WhatsApp', data_criacao: new Date().toISOString(), ultimo_contato: new Date().toISOString(), valor_sistema: 12500 },
-  { id: '2', nome: 'Maria Oliveira', consumo: 800, telefone: '5511988888888', status: 'Proposta', source: 'Website', data_criacao: new Date(Date.now() - 86400000 * 4).toISOString(), ultimo_contato: new Date(Date.now() - 86400000 * 3).toISOString(), valor_sistema: 22000 },
-  { id: '3', nome: 'Carlos Souza', consumo: 1200, telefone: '5511977777777', status: 'Vistoria', source: 'Manual', data_criacao: new Date(Date.now() - 86400000 * 10).toISOString(), ultimo_contato: new Date(Date.now() - 86400000 * 5).toISOString(), valor_sistema: 35000 },
-  { id: '4', nome: 'Ana Santos', consumo: 350, telefone: '5511966666666', status: 'Fechado', source: 'WhatsApp', data_criacao: new Date(Date.now() - 86400000 * 35).toISOString(), ultimo_contato: new Date(Date.now() - 86400000 * 20).toISOString(), valor_sistema: 10500 },
-  { id: '5', nome: 'Pedro Rocha', consumo: 600, telefone: '5511955555555', status: 'Novo', source: 'Website', data_criacao: new Date().toISOString(), ultimo_contato: new Date().toISOString(), valor_sistema: 18000 },
+  { id: '1', nome: 'João Silva', consumo: 450, telefone: '5511999999999', status: 'Novo', source: 'WhatsApp', data_criacao: new Date().toISOString(), ultimo_contato: new Date().toISOString(), valor_sistema: 12500, notas: "Cliente interessado em financiamento.", historico: [{ data: new Date().toISOString(), acao: "Lead criado via WhatsApp" }], prioridade: "URGENTE", ultima_mensagem: "Gostei da proposta, podemos fechar hoje?" },
+  { id: '2', nome: 'Maria Oliveira', consumo: 800, telefone: '5511988888888', status: 'Proposta', source: 'Website', data_criacao: new Date(Date.now() - 86400000 * 4).toISOString(), ultimo_contato: new Date(Date.now() - 86400000 * 3).toISOString(), valor_sistema: 22000, historico: [{ data: new Date(Date.now() - 86400000 * 4).toISOString(), acao: "Lead criado via Website" }, { data: new Date(Date.now() - 86400000 * 3).toISOString(), acao: "Proposta enviada" }] },
+  { id: '3', nome: 'Carlos Souza', consumo: 1200, telefone: '5511977777777', status: 'Vistoria', source: 'Manual', data_criacao: new Date(Date.now() - 86400000 * 10).toISOString(), ultimo_contato: new Date(Date.now() - 86400000 * 5).toISOString(), valor_sistema: 35000, notas: "Telhado colonial, verificar estrutura.", historico: [{ data: new Date(Date.now() - 86400000 * 10).toISOString(), acao: "Lead criado Manualmente" }, { data: new Date(Date.now() - 86400000 * 5).toISOString(), acao: "Vistoria agendada" }] },
+  { id: '4', nome: 'Ana Santos', consumo: 350, telefone: '5511966666666', status: 'Fechado', source: 'WhatsApp', data_criacao: new Date(Date.now() - 86400000 * 35).toISOString(), ultimo_contato: new Date(Date.now() - 86400000 * 20).toISOString(), valor_sistema: 10500, historico: [{ data: new Date(Date.now() - 86400000 * 35).toISOString(), acao: "Lead criado via WhatsApp" }, { data: new Date(Date.now() - 86400000 * 20).toISOString(), acao: "Contrato assinado" }] },
+  { id: '5', nome: 'Pedro Rocha', consumo: 600, telefone: '5511955555555', status: 'Novo', source: 'Website', data_criacao: new Date().toISOString(), ultimo_contato: new Date().toISOString(), valor_sistema: 18000, historico: [{ data: new Date().toISOString(), acao: "Lead criado via Website" }] },
 ];
 
 export function CRM() {
@@ -32,6 +36,7 @@ export function CRM() {
   const [filterSource, setFilterSource] = useState<string>('All');
   const [filterDate, setFilterDate] = useState<string>('All Time');
   const [filterStatus, setFilterStatus] = useState<string>('All');
+  const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
 
   const columns = ["Novo", "Agendado", "Proposta", "Vistoria", "Fechado"] as const;
 
@@ -56,9 +61,24 @@ export function CRM() {
   };
 
   const handleStatusChange = (id: string, newStatus: Lead['status']) => {
+    setLeads(prev => prev.map(lead => {
+      if (lead.id === id) {
+        const newHistorico = lead.historico ? [...lead.historico] : [];
+        newHistorico.push({ data: new Date().toISOString(), acao: `Movido para ${newStatus}` });
+        return { ...lead, status: newStatus, ultimo_contato: new Date().toISOString(), historico: newHistorico };
+      }
+      return lead;
+    }));
+  };
+
+  const handleSaveNote = (id: string, nota: string) => {
     setLeads(prev => prev.map(lead => 
-      lead.id === id ? { ...lead, status: newStatus, ultimo_contato: new Date().toISOString() } : lead
+      lead.id === id ? { ...lead, notas: nota } : lead
     ));
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedLeadId(prev => prev === id ? null : id);
   };
 
   const filteredLeads = useMemo(() => {
@@ -238,23 +258,36 @@ export function CRM() {
                     const hoje = new Date();
                     const horasPassadas = Math.abs(hoje.getTime() - dataEnvio.getTime()) / 36e5;
                     const taParado = horasPassadas > 48 && lead.status === "Proposta";
+                    const isQuente = lead.prioridade === "URGENTE";
 
-                    let cardClasses = "p-4 rounded-md text-white shadow-sm transition-colors border relative group ";
+                    let cardClasses = "p-4 rounded-md text-white transition-colors border relative group ";
                     if (taParado) {
-                      cardClasses += "bg-[#4a0000] border-[#ff0000] animate-pulse";
+                      cardClasses += "bg-[#4a0000] border-[#ff0000] animate-pulse shadow-sm";
+                    } else if (isQuente) {
+                      cardClasses += "bg-[#222] border-[#FFAB00] border-2 shadow-[0_0_15px_rgba(255,171,0,0.5)]";
                     } else if (lead.contacted) {
-                      cardClasses += "bg-[#1a2e1f] border-[#25D366] hover:bg-[#1f3825]";
+                      cardClasses += "bg-[#1a2e1f] border-[#25D366] hover:bg-[#1f3825] shadow-sm";
                     } else {
-                      cardClasses += "bg-[#2a2a2a] border-[#333] hover:bg-[#333]";
+                      cardClasses += "bg-[#2a2a2a] border-[#333] hover:bg-[#333] shadow-sm";
                     }
+
+                    const isExpanded = expandedLeadId === lead.id;
 
                     return (
                     <div key={lead.id} className={cardClasses}>
-                      <div className="flex items-center gap-2 mb-2">
+                      {isQuente && (
+                        <span className="absolute -top-3 -right-3 bg-[#FFAB00] text-black px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md z-10">
+                          🔥 INTERESSE DETECTADO
+                        </span>
+                      )}
+                      <div 
+                        className="flex items-center gap-2 mb-2 cursor-pointer"
+                        onClick={() => toggleExpand(lead.id)}
+                      >
                         <div className="bg-[#FFAB00] p-1 rounded-full text-black">
                           <User size={14} />
                         </div>
-                        <strong className="text-lg truncate pr-16">{lead.nome}</strong>
+                        <strong className="text-lg truncate pr-16 hover:text-[#FFAB00] transition-colors">{lead.nome}</strong>
                       </div>
                       
                       <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
@@ -271,6 +304,10 @@ export function CRM() {
                         <p className="text-sm text-gray-400">Origem: <span className="text-gray-200">{lead.source}</span></p>
                         <p className="text-sm text-gray-400">Valor: <span className="text-[#FFAB00] font-medium">R$ {lead.valor_sistema.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></p>
                         
+                        {lead.ultima_mensagem && (
+                          <p className="text-sm text-gray-300 italic mt-2 border-l-2 border-[#FFAB00] pl-2">"{lead.ultima_mensagem}"</p>
+                        )}
+
                         <div className="mt-3 pt-3 border-t border-[#444] flex items-center gap-2">
                           <span className="text-xs text-gray-500">Mover para:</span>
                           <select 
@@ -290,6 +327,37 @@ export function CRM() {
                           </p>
                         )}
                       </div>
+
+                      {isExpanded && (
+                        <div className="mt-4 pt-4 border-t border-[#444] space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                          <div>
+                            <label className="text-xs text-gray-500 mb-1 block">Notas do Lead</label>
+                            <textarea 
+                              className="w-full bg-[#1e1e1e] border border-[#555] text-white text-sm rounded p-2 focus:outline-none focus:border-[#FFAB00] min-h-[60px] resize-y"
+                              placeholder="Adicione notas sobre o cliente..."
+                              defaultValue={lead.notas || ''}
+                              onBlur={(e) => handleSaveNote(lead.id, e.target.value)}
+                            />
+                            <p className="text-[10px] text-gray-500 mt-1 text-right">Salva automaticamente ao sair do campo</p>
+                          </div>
+
+                          <div>
+                            <label className="text-xs text-gray-500 mb-2 block">Histórico de Atividades</label>
+                            <div className="space-y-2 max-h-[120px] overflow-y-auto pr-1 custom-scrollbar">
+                              {lead.historico && lead.historico.length > 0 ? (
+                                lead.historico.slice().reverse().map((item, index) => (
+                                  <div key={index} className="flex flex-col bg-[#1e1e1e] p-2 rounded border border-[#333]">
+                                    <span className="text-[10px] text-gray-500">{formatDate(item.data)}</span>
+                                    <span className="text-xs text-gray-300">{item.acao}</span>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-xs text-gray-500 italic">Nenhum histórico registrado.</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       
                       <div className="flex flex-col gap-2 mt-4">
                         {lead.status === 'Fechado' && (
