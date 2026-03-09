@@ -9,33 +9,26 @@ export function WhatsAppIntegrationModal({ onClose }: { onClose: () => void }) {
   const appUrl = "https://ais-pre-wy73vu6wzi75idzzfgoc75-48065362790.us-east1.run.app";
 
   const scriptCode = `javascript:(function() {
-  // Remove iframe antigo se existir
-  const oldIframe = document.getElementById('mgs-solar-iframe');
-  if (oldIframe) oldIframe.remove();
-  const oldBtn = document.getElementById('mgs-solar-close');
-  if (oldBtn) oldBtn.remove();
-
   const gestorURL = "https://ais-pre-wy73vu6wzi75idzzfgoc75-48065362790.us-east1.run.app/";
   
-  // Criar o Iframe que aparece ao lado do chat do cliente
-  const iframeMGS = document.createElement('iframe');
-  iframeMGS.id = 'mgs-solar-iframe';
-  iframeMGS.src = \`\${gestorURL}?origem=extensao&venda=true\`;
-  iframeMGS.style.cssText = "width:400px; height:100%; border:none; border-left:2px solid #FFAB00; position:fixed; right:0; top:0; z-index:9999; box-shadow:-5px 0 15px rgba(0,0,0,0.2); background-color:#121212;";
-  
-  // Botão de fechar
-  const closeBtn = document.createElement('button');
-  closeBtn.id = 'mgs-solar-close';
-  closeBtn.innerHTML = '✕';
-  closeBtn.style.cssText = "position:fixed; top:10px; right:410px; z-index:10000; background:#FFAB00; color:#000; border:none; border-radius:50%; width:30px; height:30px; cursor:pointer; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.3);";
-  
-  closeBtn.onclick = () => {
-    iframeMGS.remove();
-    closeBtn.remove();
-  };
+  // Tenta extrair o nome do contato ativo no WhatsApp Web (opcional)
+  let contatoNome = "";
+  try {
+    const headerEl = document.querySelector('header');
+    if (headerEl) {
+      const titleEl = headerEl.querySelector('span[dir="auto"]');
+      if (titleEl) contatoNome = titleEl.textContent;
+    }
+  } catch(e) {}
 
-  document.body.appendChild(iframeMGS);
-  document.body.appendChild(closeBtn);
+  const urlComParametros = \`\${gestorURL}?origem=extensao&venda=true\${contatoNome ? '&nome=' + encodeURIComponent(contatoNome) : ''}\`;
+  
+  // Abre o MGS Solar Command em uma janela popup lateral
+  const width = 450;
+  const height = window.screen.height;
+  const left = window.screen.width - width;
+  
+  window.open(urlComParametros, 'MGS_Solar_Command', \`width=\${width},height=\${height},left=\${left},top=0,menubar=no,toolbar=no,location=no,status=no\`);
 })();`;
 
   const handleCopy = () => {
