@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
@@ -11,13 +11,13 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase safely
+const app = !getApps().length && firebaseConfig.apiKey ? initializeApp(firebaseConfig) : getApps()[0];
 
 // Initialize Firebase Authentication and get a reference to the service
-export const auth = getAuth(app);
+export const auth = app ? getAuth(app) : null;
 
 // Initialize Cloud Firestore and get a reference to the service
-export const db = getFirestore(app);
+export const db = app ? getFirestore(app) : null;
 
 export default app;

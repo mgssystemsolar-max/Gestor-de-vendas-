@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Wrench, Activity, AlertTriangle } from 'lucide-react';
+import { db } from '../lib/firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
 
 interface MaintenanceLead {
   id: string;
@@ -92,7 +94,33 @@ const StatusManutencao: React.FC<{ lead: MaintenanceLead }> = ({ lead }) => {
 };
 
 export function MaintenanceDashboard() {
-  const [leads] = useState<MaintenanceLead[]>(mockMaintenanceLeads);
+  const [leads, setLeads] = useState<MaintenanceLead[]>(mockMaintenanceLeads);
+
+  useEffect(() => {
+    if (!db) return;
+    
+    const unsubscribe = onSnapshot(collection(db, 'maintenance_solar'), (snapshot) => {
+      if (!snapshot.empty) {
+        const firebaseLeads: MaintenanceLead[] = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            nome: data.nome || 'Sem Nome',
+            telefone: data.telefone || '',
+            modeloInversor: data.modeloInversor || 'Desconhecido',
+            linkPortal: data.linkPortal || '#',
+            lastUpdate: data.lastUpdate || Date.now(),
+            endereco: data.endereco || 'Endereço não informado'
+          } as MaintenanceLead;
+        });
+        setLeads(firebaseLeads);
+      }
+    }, (error) => {
+      console.error("Erro ao buscar dados de manutenção do Firebase:", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const offlineCount = leads.filter(l => l.lastUpdate < Date.now() - 86400000).length;
   const onlineCount = leads.length - offlineCount;

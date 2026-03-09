@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { MessageCircle, User, Filter } from 'lucide-react';
+import { db } from '../lib/firebase';
+import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 
 interface Lead {
   id: string;
@@ -7,7 +9,7 @@ interface Lead {
   consumo: number;
   telefone: string;
   status: "Novo" | "Agendado" | "Proposta" | "Vistoria" | "Fechado";
-  source: "WhatsApp" | "Website" | "Manual";
+  source: "WhatsApp" | "Website" | "Manual" | string;
   data_criacao: string;
   ultimo_contato: string;
   contacted?: boolean;
@@ -29,6 +31,41 @@ const initialLeads: Lead[] = [
 
 export function CRM() {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
+  const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
+  
+  useEffect(() => {
+    if (!db) return;
+    
+    const unsubscribe = onSnapshot(collection(db, 'leads_solar'), (snapshot) => {
+      if (!snapshot.empty) {
+        setIsFirebaseConnected(true);
+        const firebaseLeads: Lead[] = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            nome: data.nome || 'Sem Nome',
+            consumo: data.consumo_kwh || 0,
+            telefone: data.telefone || doc.id,
+            status: data.status || 'Novo',
+            source: data.origem || data.source || 'Website',
+            data_criacao: data.data_criacao || new Date().toISOString(),
+            ultimo_contato: data.ultimo_contato || new Date().toISOString(),
+            contacted: data.contacted || false,
+            valor_sistema: data.valor_fatura ? data.valor_fatura * 12 : (data.valor_sistema || 0), // Estimativa se não tiver valor_sistema
+            notas: data.notas || '',
+            historico: data.historico || [],
+            prioridade: data.prioridade || 'NORMAL',
+            ultima_mensagem: data.ultima_mensagem || ''
+          } as Lead;
+        });
+        setLeads(firebaseLeads);
+      }
+    }, (error) => {
+      console.error("Erro ao buscar leads do Firebase:", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
   
   // Filters state
   const [filterMinKwh, setFilterMinKwh] = useState<string>('');
@@ -40,11 +77,29 @@ export function CRM() {
 
   const columns = ["Novo", "Agendado", "Proposta", "Vistoria", "Fechado"] as const;
 
-  const abrirNoWhats = (telefone: string, id: string) => {
+  const abrirNoWhats = async (telefone: string, id: string) => {
     window.open(`https://wa.me/${telefone}`, '_blank');
-    setLeads(prev => prev.map(lead => 
-      lead.id === id ? { ...lead, contacted: true } : lead
-    ));
+    
+    const lead = leads.find(l => l.id === id);
+    if (!lead || lead.contacted) return;
+
+    const newHistorico = lead.historico ? [...lead.historico] : [];
+    newHistorico.push({ data: new Date().toISOString(), acao: "Marcado como Contato Realizado via WhatsApp" });
+
+    if (isFirebaseConnected && db) {
+      try {
+        await updateDoc(doc(db, 'leads_solar', id), {
+          contacted: true,
+          historico: newHistorico
+        });
+      } catch (error) {
+        console.error("Erro ao atualizar contato:", error);
+      }
+    } else {
+      setLeads(prev => prev.map(l => 
+        l.id === id ? { ...l, contacted: true, historico: newHistorico } : l
+      ));
+    }
   };
 
   const enviarOnboardingMGS = (telefone: string, nomeCliente: string) => {
@@ -60,37 +115,102 @@ export function CRM() {
     window.open(`https://wa.me/${telefone}?text=${encodedText}`, '_blank');
   };
 
-  const handleStatusChange = (id: string, newStatus: Lead['status']) => {
-    setLeads(prev => prev.map(lead => {
-      if (lead.id === id) {
-        const newHistorico = lead.historico ? [...lead.historico] : [];
-        newHistorico.push({ data: new Date().toISOString(), acao: `Movido para ${newStatus}` });
-        return { ...lead, status: newStatus, ultimo_contato: new Date().toISOString(), historico: newHistorico };
+  const handleStatusChange = async (id: string, newStatus: Lead['status']) => {
+    const lead = leads.find(l => l.id === id);
+    if (!lead) return;
+
+    const newHistorico = lead.historico ? [...lead.historico] : [];
+    newHistorico.push({ data: new Date().toISOString(), acao: `Movido para ${newStatus}` });
+    
+    if (isFirebaseConnected && db) {
+      try {
+        await updateDoc(doc(db, 'leads_solar', id), {
+          status: newStatus,
+          ultimo_contato: new Date().toISOString(),
+          historico: newHistorico
+        });
+      } catch (error) {
+        console.error("Erro ao atualizar status:", error);
       }
-      return lead;
-    }));
+    } else {
+      setLeads(prev => prev.map(l => {
+        if (l.id === id) {
+          return { ...l, status: newStatus, ultimo_contato: new Date().toISOString(), historico: newHistorico };
+        }
+        return l;
+      }));
+    }
   };
 
-  const handleSaveNote = (id: string, nota: string) => {
-    setLeads(prev => prev.map(lead => 
-      lead.id === id ? { ...lead, notas: nota } : lead
-    ));
+  const handleSaveNote = async (id: string, nota: string) => {
+    if (isFirebaseConnected && db) {
+      try {
+        await updateDoc(doc(db, 'leads_solar', id), {
+          notas: nota
+        });
+      } catch (error) {
+        console.error("Erro ao salvar nota:", error);
+      }
+    } else {
+      setLeads(prev => prev.map(lead => 
+        lead.id === id ? { ...lead, notas: nota } : lead
+      ));
+    }
   };
 
   const toggleExpand = (id: string) => {
     setExpandedLeadId(prev => prev === id ? null : id);
   };
 
-  const togglePriority = (id: string) => {
-    setLeads(prev => prev.map(lead => {
-      if (lead.id === id) {
-        const newPriority = lead.prioridade === "URGENTE" ? "NORMAL" : "URGENTE";
-        const newHistorico = lead.historico ? [...lead.historico] : [];
-        newHistorico.push({ data: new Date().toISOString(), acao: `Prioridade alterada para ${newPriority}` });
-        return { ...lead, prioridade: newPriority, historico: newHistorico };
+  const togglePriority = async (id: string) => {
+    const lead = leads.find(l => l.id === id);
+    if (!lead) return;
+
+    const newPriority = lead.prioridade === "URGENTE" ? "NORMAL" : "URGENTE";
+    const newHistorico = lead.historico ? [...lead.historico] : [];
+    newHistorico.push({ data: new Date().toISOString(), acao: `Prioridade alterada para ${newPriority}` });
+
+    if (isFirebaseConnected && db) {
+      try {
+        await updateDoc(doc(db, 'leads_solar', id), {
+          prioridade: newPriority,
+          historico: newHistorico
+        });
+      } catch (error) {
+        console.error("Erro ao alterar prioridade:", error);
       }
-      return lead;
-    }));
+    } else {
+      setLeads(prev => prev.map(l => {
+        if (l.id === id) {
+          return { ...l, prioridade: newPriority, historico: newHistorico };
+        }
+        return l;
+      }));
+    }
+  };
+
+  const toggleContacted = async (id: string) => {
+    const lead = leads.find(l => l.id === id);
+    if (!lead) return;
+
+    const newContacted = !lead.contacted;
+    const newHistorico = lead.historico ? [...lead.historico] : [];
+    newHistorico.push({ data: new Date().toISOString(), acao: newContacted ? "Marcado como Contato Realizado" : "Marcado como Não Contatado" });
+
+    if (isFirebaseConnected && db) {
+      try {
+        await updateDoc(doc(db, 'leads_solar', id), {
+          contacted: newContacted,
+          historico: newHistorico
+        });
+      } catch (error) {
+        console.error("Erro ao alterar status de contato:", error);
+      }
+    } else {
+      setLeads(prev => prev.map(l => 
+        l.id === id ? { ...l, contacted: newContacted, historico: newHistorico } : l
+      ));
+    }
   };
 
   const filteredLeads = useMemo(() => {
@@ -364,15 +484,7 @@ export function CRM() {
                             <button 
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setLeads(prev => prev.map(l => 
-                                  l.id === lead.id 
-                                    ? { 
-                                        ...l, 
-                                        contacted: !l.contacted,
-                                        historico: [...(l.historico || []), { data: new Date().toISOString(), acao: !l.contacted ? "Marcado como Contato Realizado" : "Marcado como Não Contatado" }]
-                                      } 
-                                    : l
-                                ));
+                                toggleContacted(lead.id);
                               }}
                               className={`text-xs px-2 py-1 rounded border transition-colors ${
                                 lead.contacted 
