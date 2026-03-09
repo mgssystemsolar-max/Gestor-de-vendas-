@@ -5,8 +5,8 @@ import { MessageCircle, Copy, Check, X } from 'lucide-react';
 export function WhatsAppIntegrationModal({ onClose }: { onClose: () => void }) {
   const [copied, setCopied] = useState(false);
 
-  // Use the specific Vercel URL for the iframe source
-  const appUrl = "https://gestor-de-vendas-93wk-8xwbkcggk-marcio-s-projects-9de18685.vercel.app";
+  // Use the specific AI Studio Shared App URL for the iframe source
+  const appUrl = "https://ais-pre-wy73vu6wzi75idzzfgoc75-48065362790.us-east1.run.app";
 
   const scriptCode = `javascript:(function() {
   // Remove iframe antigo se existir
@@ -15,7 +15,7 @@ export function WhatsAppIntegrationModal({ onClose }: { onClose: () => void }) {
   const oldBtn = document.getElementById('mgs-solar-close');
   if (oldBtn) oldBtn.remove();
 
-  const gestorURL = "https://gestor-de-vendas-93wk-8xwbkcggk-marcio-s-projects-9de18685.vercel.app/";
+  const gestorURL = "https://ais-pre-wy73vu6wzi75idzzfgoc75-48065362790.us-east1.run.app/";
   
   // Criar o Iframe que aparece ao lado do chat do cliente
   const iframeMGS = document.createElement('iframe');

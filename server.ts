@@ -10,6 +10,13 @@ async function startServer() {
   app.use(cors());
   app.use(express.json());
 
+  // Allow framing by WhatsApp Web
+  app.use((req, res, next) => {
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://web.whatsapp.com https://*.whatsapp.com");
+    res.removeHeader('X-Frame-Options');
+    next();
+  });
+
   // API routes FIRST
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
