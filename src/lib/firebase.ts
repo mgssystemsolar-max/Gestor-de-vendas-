@@ -12,7 +12,13 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase safely
-const app = !getApps().length && firebaseConfig.apiKey ? initializeApp(firebaseConfig) : getApps()[0];
+let app;
+try {
+  app = !getApps().length && firebaseConfig.apiKey ? initializeApp(firebaseConfig) : getApps()[0];
+} catch (error) {
+  console.error("Failed to initialize Firebase:", error);
+  app = undefined;
+}
 
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = app ? getAuth(app) : null;

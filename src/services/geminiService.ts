@@ -1,6 +1,20 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let aiInstance: GoogleGenAI | null = null;
+
+function getAI() {
+  if (!aiInstance) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.warn("GEMINI_API_KEY is not set. AI features will not work.");
+      // We still create the instance, but it might fail on actual calls
+      aiInstance = new GoogleGenAI({ apiKey: "missing-key" });
+    } else {
+      aiInstance = new GoogleGenAI({ apiKey });
+    }
+  }
+  return aiInstance;
+}
 
 export interface SolarAnalysisResult {
   consumo_kwh: number;
@@ -54,6 +68,7 @@ export async function analyzeEnergyBill(
   `;
 
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: model,
       contents: {
@@ -118,6 +133,7 @@ export async function calculateManual(data: {
         Seja breve (max 3 parágrafos).
     `;
 
+    const ai = getAI();
     const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: prompt,
