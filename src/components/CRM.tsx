@@ -81,6 +81,18 @@ export function CRM() {
     setExpandedLeadId(prev => prev === id ? null : id);
   };
 
+  const togglePriority = (id: string) => {
+    setLeads(prev => prev.map(lead => {
+      if (lead.id === id) {
+        const newPriority = lead.prioridade === "URGENTE" ? "NORMAL" : "URGENTE";
+        const newHistorico = lead.historico ? [...lead.historico] : [];
+        newHistorico.push({ data: new Date().toISOString(), acao: `Prioridade alterada para ${newPriority}` });
+        return { ...lead, prioridade: newPriority, historico: newHistorico };
+      }
+      return lead;
+    }));
+  };
+
   const filteredLeads = useMemo(() => {
     return leads.filter(lead => {
       // Consumption
@@ -294,7 +306,7 @@ export function CRM() {
                         <span className="text-xs text-gray-500">{formatDate(lead.data_criacao)}</span>
                         {lead.contacted && !taParado && (
                           <span className="text-[10px] bg-[#25D366]/20 text-[#25D366] px-1.5 py-0.5 rounded border border-[#25D366]/30">
-                            Contatado
+                            Contato Realizado
                           </span>
                         )}
                       </div>
@@ -330,6 +342,48 @@ export function CRM() {
 
                       {isExpanded && (
                         <div className="mt-4 pt-4 border-t border-[#444] space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs text-gray-500">Prioridade</span>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                togglePriority(lead.id);
+                              }}
+                              className={`text-xs px-2 py-1 rounded border transition-colors ${
+                                isQuente 
+                                  ? 'bg-[#FFAB00]/20 border-[#FFAB00] text-[#FFAB00] hover:bg-[#FFAB00]/30' 
+                                  : 'bg-[#333] border-[#555] text-gray-300 hover:bg-[#444]'
+                              }`}
+                            >
+                              {isQuente ? '🔥 URGENTE' : 'Marcar como Urgente'}
+                            </button>
+                          </div>
+
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs text-gray-500">Status de Contato</span>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLeads(prev => prev.map(l => 
+                                  l.id === lead.id 
+                                    ? { 
+                                        ...l, 
+                                        contacted: !l.contacted,
+                                        historico: [...(l.historico || []), { data: new Date().toISOString(), acao: !l.contacted ? "Marcado como Contato Realizado" : "Marcado como Não Contatado" }]
+                                      } 
+                                    : l
+                                ));
+                              }}
+                              className={`text-xs px-2 py-1 rounded border transition-colors ${
+                                lead.contacted 
+                                  ? 'bg-[#25D366]/20 border-[#25D366] text-[#25D366] hover:bg-[#25D366]/30' 
+                                  : 'bg-[#333] border-[#555] text-gray-300 hover:bg-[#444]'
+                              }`}
+                            >
+                              {lead.contacted ? '✅ Contato Realizado' : 'Marcar como Contatado'}
+                            </button>
+                          </div>
+
                           <div>
                             <label className="text-xs text-gray-500 mb-1 block">Notas do Lead</label>
                             <textarea 

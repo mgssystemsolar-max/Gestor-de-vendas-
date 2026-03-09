@@ -5,69 +5,36 @@ import { MessageCircle, Copy, Check, X } from 'lucide-react';
 export function WhatsAppIntegrationModal({ onClose }: { onClose: () => void }) {
   const [copied, setCopied] = useState(false);
 
-  // Use the current app URL for the iframe source
-  const appUrl = window.location.origin;
+  // Use the specific Vercel URL for the iframe source
+  const appUrl = "https://gestor-de-vendas-93wk-8xwbkcggk-marcio-s-projects-9de18685.vercel.app";
 
   const scriptCode = `javascript:(function() {
-  // MGS Solar - WhatsApp Web Extension
-  const getWhatsAppContact = () => {
-    // Tenta pegar o nome do contato ativo no WhatsApp Web
-    const nameEl = document.querySelector('header [title]');
-    return nameEl ? nameEl.getAttribute('title') : 'Cliente';
-  };
-
-  const getWhatsAppPhone = () => {
-    // Tenta pegar o número do telefone se disponível (pode não estar visível dependendo da tela)
-    // Em muitos casos no WhatsApp Web, o número fica no painel de info do contato
-    return ''; // Deixe em branco para o usuário preencher ou adicione lógica avançada aqui
-  };
-
-  const clienteNome = encodeURIComponent(getWhatsAppContact());
-  const clienteTelefone = encodeURIComponent(getWhatsAppPhone());
-
   // Remove iframe antigo se existir
   const oldIframe = document.getElementById('mgs-solar-iframe');
   if (oldIframe) oldIframe.remove();
+  const oldBtn = document.getElementById('mgs-solar-close');
+  if (oldBtn) oldBtn.remove();
 
-  const iframe = document.createElement('iframe');
-  iframe.id = 'mgs-solar-iframe';
-  iframe.src = \`${appUrl}/?name=\${clienteNome}&phone=\${clienteTelefone}\`;
+  const gestorURL = "https://gestor-de-vendas-93wk-8xwbkcggk-marcio-s-projects-9de18685.vercel.app/";
   
-  // Estilos para posicionar o iframe no lado direito do WhatsApp Web
-  iframe.style.position = 'fixed';
-  iframe.style.top = '0';
-  iframe.style.right = '0';
-  iframe.style.width = '380px';
-  iframe.style.height = '100vh';
-  iframe.style.border = 'none';
-  iframe.style.borderLeft = '2px solid #FFAB00';
-  iframe.style.zIndex = '9999';
-  iframe.style.boxShadow = '-5px 0 15px rgba(0,0,0,0.2)';
-  iframe.style.backgroundColor = '#121212';
-
+  // Criar o Iframe que aparece ao lado do chat do cliente
+  const iframeMGS = document.createElement('iframe');
+  iframeMGS.id = 'mgs-solar-iframe';
+  iframeMGS.src = \`\${gestorURL}?origem=extensao&venda=true\`;
+  iframeMGS.style.cssText = "width:400px; height:100%; border:none; border-left:2px solid #FFAB00; position:fixed; right:0; top:0; z-index:9999; box-shadow:-5px 0 15px rgba(0,0,0,0.2); background-color:#121212;";
+  
   // Botão de fechar
   const closeBtn = document.createElement('button');
+  closeBtn.id = 'mgs-solar-close';
   closeBtn.innerHTML = '✕';
-  closeBtn.style.position = 'fixed';
-  closeBtn.style.top = '10px';
-  closeBtn.style.right = '390px';
-  closeBtn.style.zIndex = '10000';
-  closeBtn.style.background = '#FFAB00';
-  closeBtn.style.color = '#000';
-  closeBtn.style.border = 'none';
-  closeBtn.style.borderRadius = '50%';
-  closeBtn.style.width = '30px';
-  closeBtn.style.height = '30px';
-  closeBtn.style.cursor = 'pointer';
-  closeBtn.style.fontWeight = 'bold';
-  closeBtn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.3)';
+  closeBtn.style.cssText = "position:fixed; top:10px; right:410px; z-index:10000; background:#FFAB00; color:#000; border:none; border-radius:50%; width:30px; height:30px; cursor:pointer; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.3);";
   
   closeBtn.onclick = () => {
-    iframe.remove();
+    iframeMGS.remove();
     closeBtn.remove();
   };
 
-  document.body.appendChild(iframe);
+  document.body.appendChild(iframeMGS);
   document.body.appendChild(closeBtn);
 })();`;
 

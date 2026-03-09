@@ -3,13 +3,14 @@ import { UploadSection } from './components/UploadSection';
 import { ResultsDashboard } from './components/ResultsDashboard';
 import { ManualInput } from './components/ManualInput';
 import { SolarAnalysisResult } from './services/geminiService';
-import { Zap, LayoutDashboard, Calculator, MessageCircle } from 'lucide-react';
+import { Zap, LayoutDashboard, Calculator, MessageCircle, Wrench } from 'lucide-react';
 import { CRM } from './components/CRM';
 import { WhatsAppIntegrationModal } from './components/WhatsAppIntegrationModal';
+import { MaintenanceDashboard } from './components/MaintenanceDashboard';
 
 function App() {
   const [analysisResult, setAnalysisResult] = useState<SolarAnalysisResult | null>(null);
-  const [currentView, setCurrentView] = useState<'calculator' | 'crm'>('calculator');
+  const [currentView, setCurrentView] = useState<'calculator' | 'crm' | 'maintenance'>('calculator');
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
 
   return (
@@ -36,10 +37,10 @@ function App() {
         </div>
         
         {/* Navigation */}
-        <div className="flex justify-center space-x-1 bg-[#121212] py-2">
+        <div className="flex justify-center space-x-1 bg-[#121212] py-2 overflow-x-auto px-2 custom-scrollbar">
           <button
             onClick={() => setCurrentView('calculator')}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
               currentView === 'calculator'
                 ? 'bg-[#FFAB00] text-black'
                 : 'text-gray-400 hover:text-white hover:bg-[#333]'
@@ -50,7 +51,7 @@ function App() {
           </button>
           <button
             onClick={() => setCurrentView('crm')}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
               currentView === 'crm'
                 ? 'bg-[#FFAB00] text-black'
                 : 'text-gray-400 hover:text-white hover:bg-[#333]'
@@ -59,9 +60,20 @@ function App() {
             <LayoutDashboard className="w-4 h-4 mr-2" />
             CRM / Leads
           </button>
+          <button
+            onClick={() => setCurrentView('maintenance')}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+              currentView === 'maintenance'
+                ? 'bg-[#FFAB00] text-black'
+                : 'text-gray-400 hover:text-white hover:bg-[#333]'
+            }`}
+          >
+            <Wrench className="w-4 h-4 mr-2" />
+            O&M (Manutenção)
+          </button>
           <button 
             onClick={() => setShowWhatsAppModal(true)}
-            className="sm:hidden flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors text-[#25D366] hover:bg-[#333]"
+            className="sm:hidden flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors text-[#25D366] hover:bg-[#333] whitespace-nowrap"
           >
             <MessageCircle className="w-4 h-4 mr-2" />
             WhatsApp
@@ -69,9 +81,11 @@ function App() {
         </div>
       </header>
 
-      <main className={`flex-grow ${currentView === 'crm' ? 'bg-[#121212]' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'}`}>
+      <main className={`flex-grow ${currentView !== 'calculator' ? 'bg-[#121212]' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'}`}>
         {currentView === 'crm' ? (
           <CRM />
+        ) : currentView === 'maintenance' ? (
+          <MaintenanceDashboard />
         ) : (
           <>
             {!analysisResult ? (

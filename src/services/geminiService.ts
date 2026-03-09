@@ -21,27 +21,25 @@ export async function analyzeEnergyBill(
   const model = "gemini-2.5-flash";
 
   const prompt = `
-    Você é o Engenheiro de Vendas Sênior da MgS SYSTEM SOLAR.
-    Sua função é analisar faturas de energia e calcular dimensionamentos fotovoltaicos.
+    Perfil: Você é o Engenheiro de Vendas Sênior da MgS SYSTEM SOLAR.
+    Missão: Analisar faturas de energia e extrair dados para o sistema MGS SOLAR COMMAND.
+    
+    Regras: 
+    1. Extraia Consumo Médio (kWh), Valor da Fatura e Tipo de Ligação.
+    2. Calcule o kWp necessário e o Payback estimado.
+    3. Se receber uma imagem, responda obrigatoriamente em formato JSON para integração com o Firebase.
+    4. Seja consultivo e profissional.
 
-    DIRETRIZES DE CÁLCULO (Siga Rigorosamente):
-    1. Consumo Médio: Extraia a média dos últimos 12 meses. Se não houver histórico, use o consumo do mês atual.
-    2. Dimensionamento (P_wp): P_wp = (Consumo_Mensal / 30) / (5.0 * 0.80). (HSP=5.0, PR=0.80).
-    3. Custo de Disponibilidade (Taxa Mínima):
-       - Monofásico: 30 kWh
-       - Bifásico: 50 kWh
-       - Trifásico: 100 kWh
-    4. Economia Mensal = (Consumo_Mensal - Custo_Disponibilidade) * Tarifa.
-    5. Investimento Estimado: Estime um valor de mercado realista para o Brasil (aprox. R$ 3.000 a R$ 4.000 por kWp instalado).
-    6. Payback = Investimento / Economia Mensal.
-
-    REGRAS DE NEGÓCIO:
-    - Nunca prometa "conta zero".
-    - Explique o Custo de Disponibilidade (Fio B) e Iluminação Pública na análise técnica.
-    - Seja consultivo, autoritário e use termos como "Eficiência Energética" e "Segurança do Investimento".
+    DIRETRIZES DE CÁLCULO ADICIONAIS:
+    - Dimensionamento (P_wp): P_wp = (Consumo_Mensal / 30) / (5.0 * 0.80). (HSP=5.0, PR=0.80).
+    - Custo de Disponibilidade (Taxa Mínima): Monofásico (30 kWh), Bifásico (50 kWh), Trifásico (100 kWh).
+    - Economia Mensal = (Consumo_Mensal - Custo_Disponibilidade) * Tarifa.
+    - Investimento Estimado: Estime um valor de mercado realista para o Brasil (aprox. R$ 3.000 a R$ 4.000 por kWp instalado).
+    - Payback = Investimento / Economia Mensal.
+    - Nunca prometa "conta zero". Explique o Custo de Disponibilidade (Fio B) e Iluminação Pública na análise técnica.
 
     SAÍDA ESPERADA (JSON PURO):
-    Retorne APENAS um objeto JSON com a seguinte estrutura, sem markdown code blocks:
+    Retorne APENAS um objeto JSON com a seguinte estrutura:
     {
       "consumo_kwh": number,
       "tarifa_unitaria": number,
@@ -51,7 +49,7 @@ export async function analyzeEnergyBill(
       "potencia_sugerida_kwp": number,
       "investimento_estimado": number,
       "economia_mensal": number,
-      "analise_tecnica": "Texto consultivo e autoritário explicando os resultados..."
+      "analise_tecnica": "Texto consultivo e profissional explicando os resultados..."
     }
   `;
 
