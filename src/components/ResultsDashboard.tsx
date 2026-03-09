@@ -32,7 +32,7 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
 
   const chartData = [
     { name: 'Atual', valor: data.valor_fatura, color: '#94a3b8' },
-    { name: 'Com Solar', valor: data.valor_fatura - data.economia_mensal, color: '#ea580c' },
+    { name: 'Com Solar', valor: data.valor_fatura - data.economia_mensal, color: '#2563eb' },
   ];
 
   const handleSaveLead = async () => {
@@ -115,7 +115,7 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-slate-400 text-sm font-medium">Potência Sugerida</span>
-              <Sun className="w-5 h-5 text-orange-500" />
+              <Sun className="w-5 h-5 text-blue-500" />
             </div>
             <div className="text-3xl font-bold">{data.potencia_sugerida_kwp} <span className="text-lg font-normal text-slate-400">kWp</span></div>
             <div className="mt-2 text-xs text-slate-400">Sistema ideal para seu consumo</div>
@@ -161,10 +161,10 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Technical Analysis */}
-        <Card className="lg:col-span-2 border-l-4 border-l-orange-600">
+        <Card className="lg:col-span-2 border-l-4 border-l-blue-600">
           <CardHeader>
             <CardTitle className="flex items-center text-xl">
-              <CheckCircle2 className="w-6 h-6 text-orange-600 mr-2" />
+              <CheckCircle2 className="w-6 h-6 text-blue-600 mr-2" />
               Análise do Engenheiro
             </CardTitle>
           </CardHeader>
@@ -198,14 +198,14 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
                   placeholder="Nome do Cliente" 
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input 
                   type="tel" 
                   placeholder="Telefone (ex: 5511999999999)" 
                   value={telefone}
                   onChange={(e) => setTelefone(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <Button 
                   onClick={handleSaveLead} 
@@ -232,7 +232,7 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
                     type="checkbox" 
                     checked={querMandarAudio}
                     onChange={(e) => setQuerMandarAudio(e.target.checked)} 
-                    className="w-4 h-4 text-orange-600 rounded border-gray-300 focus:ring-orange-500"
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                   /> 
                   Vou mandar áudio?
                 </label>
@@ -295,7 +295,7 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
       <div className="flex justify-center pt-8">
         <button 
           onClick={onReset}
-          className="text-slate-500 hover:text-orange-600 font-medium text-sm flex items-center transition-colors"
+          className="text-slate-500 hover:text-blue-600 font-medium text-sm flex items-center transition-colors"
         >
           ← Realizar Nova Análise
         </button>

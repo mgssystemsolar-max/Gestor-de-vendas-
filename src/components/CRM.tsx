@@ -262,10 +262,10 @@ export function CRM() {
     <div className="flex flex-col bg-[#121212] min-h-[calc(100vh-64px)]">
       
       {/* Dashboard Summary */}
-      <div className="flex flex-wrap justify-around p-5 bg-[#1c1c1c] border-b-2 border-[#FFAB00] shadow-md">
+      <div className="flex flex-wrap justify-around p-5 bg-[#1c1c1c] border-b-2 border-[#3b82f6] shadow-md">
         <div className="text-center px-4 py-2">
           <p className="text-[#bbb] m-0 text-sm uppercase tracking-wider font-semibold">Pipeline Ativo (Propostas)</p>
-          <h2 className="text-[#FFAB00] text-3xl font-bold mt-1">R$ {totalEmPropostas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
+          <h2 className="text-[#3b82f6] text-3xl font-bold mt-1">R$ {totalEmPropostas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
         </div>
         <div className="text-center px-4 py-2">
           <p className="text-[#bbb] m-0 text-sm uppercase tracking-wider font-semibold">Vendas do Mês (Fechado)</p>
@@ -279,7 +279,7 @@ export function CRM() {
 
       {/* Filter Bar */}
       <div className="bg-[#1e1e1e] p-4 m-5 rounded-lg border border-[#333] flex flex-wrap gap-4 items-end shadow-md">
-        <div className="flex items-center gap-2 text-[#FFAB00] font-semibold mr-4">
+        <div className="flex items-center gap-2 text-[#3b82f6] font-semibold mr-4">
           <Filter size={20} />
           <span>Filtros</span>
         </div>
@@ -290,7 +290,7 @@ export function CRM() {
             type="number" 
             value={filterMinKwh}
             onChange={(e) => setFilterMinKwh(e.target.value)}
-            className="bg-[#2a2a2a] border border-[#444] text-white rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#FFAB00] w-28"
+            className="bg-[#2a2a2a] border border-[#444] text-white rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#3b82f6] w-28"
             placeholder="Ex: 300"
           />
         </div>
@@ -301,7 +301,7 @@ export function CRM() {
             type="number" 
             value={filterMaxKwh}
             onChange={(e) => setFilterMaxKwh(e.target.value)}
-            className="bg-[#2a2a2a] border border-[#444] text-white rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#FFAB00] w-28"
+            className="bg-[#2a2a2a] border border-[#444] text-white rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#3b82f6] w-28"
             placeholder="Ex: 1000"
           />
         </div>
@@ -311,7 +311,7 @@ export function CRM() {
           <select 
             value={filterSource}
             onChange={(e) => setFilterSource(e.target.value)}
-            className="bg-[#2a2a2a] border border-[#444] text-white rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#FFAB00] w-32"
+            className="bg-[#2a2a2a] border border-[#444] text-white rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#3b82f6] w-32"
           >
             <option value="All">Todas</option>
             <option value="WhatsApp">WhatsApp</option>
@@ -325,7 +325,7 @@ export function CRM() {
           <select 
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
-            className="bg-[#2a2a2a] border border-[#444] text-white rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#FFAB00] w-32"
+            className="bg-[#2a2a2a] border border-[#444] text-white rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#3b82f6] w-32"
           >
             <option value="All Time">Todo Período</option>
             <option value="Today">Hoje</option>
@@ -339,7 +339,7 @@ export function CRM() {
           <select 
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="bg-[#2a2a2a] border border-[#444] text-white rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#FFAB00] w-32"
+            className="bg-[#2a2a2a] border border-[#444] text-white rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#3b82f6] w-32"
           >
             <option value="All">Todos</option>
             {columns.map(col => (
@@ -374,7 +374,7 @@ export function CRM() {
           
           return (
             <div key={status} className="flex-1 min-w-[280px] bg-[#1e1e1e] rounded-lg p-3 border border-[#333] flex flex-col">
-              <h3 className="text-[#FFAB00] text-center border-b border-[#333] pb-2 mb-4 font-bold uppercase tracking-wider flex justify-between items-center px-2">
+              <h3 className="text-[#3b82f6] text-center border-b border-[#333] pb-2 mb-4 font-bold uppercase tracking-wider flex justify-between items-center px-2">
                 {status}
                 <span className="bg-[#333] text-white text-xs py-0.5 px-2 rounded-full">
                   {columnLeads.length}
@@ -396,7 +396,7 @@ export function CRM() {
                     if (taParado) {
                       cardClasses += "bg-[#4a0000] border-[#ff0000] animate-pulse shadow-sm";
                     } else if (isQuente) {
-                      cardClasses += "bg-[#222] border-[#FFAB00] border-2 shadow-[0_0_15px_rgba(255,171,0,0.5)]";
+                      cardClasses += "bg-[#222] border-[#3b82f6] border-2 shadow-[0_0_15px_rgba(59,130,246,0.5)]";
                     } else if (lead.contacted) {
                       cardClasses += "bg-[#1a2e1f] border-[#25D366] hover:bg-[#1f3825] shadow-sm";
                     } else {
@@ -408,7 +408,7 @@ export function CRM() {
                     return (
                     <div key={lead.id} className={cardClasses}>
                       {isQuente && (
-                        <span className="absolute -top-3 -right-3 bg-[#FFAB00] text-black px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md z-10">
+                        <span className="absolute -top-3 -right-3 bg-[#3b82f6] text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md z-10">
                           🔥 INTERESSE DETECTADO
                         </span>
                       )}
@@ -416,10 +416,10 @@ export function CRM() {
                         className="flex items-center gap-2 mb-2 cursor-pointer"
                         onClick={() => toggleExpand(lead.id)}
                       >
-                        <div className="bg-[#FFAB00] p-1 rounded-full text-black">
+                        <div className="bg-[#3b82f6] p-1 rounded-full text-white">
                           <User size={14} />
                         </div>
-                        <strong className="text-lg truncate pr-16 hover:text-[#FFAB00] transition-colors">{lead.nome}</strong>
+                        <strong className="text-lg truncate pr-16 hover:text-[#3b82f6] transition-colors">{lead.nome}</strong>
                       </div>
                       
                       <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
@@ -434,10 +434,10 @@ export function CRM() {
                       <div className="pl-8 mb-4 space-y-1">
                         <p className="text-sm text-gray-400">Consumo: <span className="text-gray-200">{lead.consumo} kWh</span></p>
                         <p className="text-sm text-gray-400">Origem: <span className="text-gray-200">{lead.source}</span></p>
-                        <p className="text-sm text-gray-400">Valor: <span className="text-[#FFAB00] font-medium">R$ {lead.valor_sistema.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></p>
+                        <p className="text-sm text-gray-400">Valor: <span className="text-[#3b82f6] font-medium">R$ {lead.valor_sistema.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></p>
                         
                         {lead.ultima_mensagem && (
-                          <p className="text-sm text-gray-300 italic mt-2 border-l-2 border-[#FFAB00] pl-2">"{lead.ultima_mensagem}"</p>
+                          <p className="text-sm text-gray-300 italic mt-2 border-l-2 border-[#3b82f6] pl-2">"{lead.ultima_mensagem}"</p>
                         )}
 
                         <div className="mt-3 pt-3 border-t border-[#444] flex items-center gap-2">
@@ -445,7 +445,7 @@ export function CRM() {
                           <select 
                             value={lead.status}
                             onChange={(e) => handleStatusChange(lead.id, e.target.value as Lead['status'])}
-                            className="bg-[#1e1e1e] border border-[#555] text-white text-xs rounded px-2 py-1.5 focus:outline-none focus:border-[#FFAB00] flex-1"
+                            className="bg-[#1e1e1e] border border-[#555] text-white text-xs rounded px-2 py-1.5 focus:outline-none focus:border-[#3b82f6] flex-1"
                           >
                             {columns.map(col => (
                               <option key={col} value={col}>{col}</option>
@@ -471,7 +471,7 @@ export function CRM() {
                               }}
                               className={`text-xs px-2 py-1 rounded border transition-colors ${
                                 isQuente 
-                                  ? 'bg-[#FFAB00]/20 border-[#FFAB00] text-[#FFAB00] hover:bg-[#FFAB00]/30' 
+                                  ? 'bg-[#3b82f6]/20 border-[#3b82f6] text-[#3b82f6] hover:bg-[#3b82f6]/30' 
                                   : 'bg-[#333] border-[#555] text-gray-300 hover:bg-[#444]'
                               }`}
                             >
@@ -499,7 +499,7 @@ export function CRM() {
                           <div>
                             <label className="text-xs text-gray-500 mb-1 block">Notas do Lead</label>
                             <textarea 
-                              className="w-full bg-[#1e1e1e] border border-[#555] text-white text-sm rounded p-2 focus:outline-none focus:border-[#FFAB00] min-h-[60px] resize-y"
+                              className="w-full bg-[#1e1e1e] border border-[#555] text-white text-sm rounded p-2 focus:outline-none focus:border-[#3b82f6] min-h-[60px] resize-y"
                               placeholder="Adicione notas sobre o cliente..."
                               defaultValue={lead.notas || ''}
                               onBlur={(e) => handleSaveNote(lead.id, e.target.value)}
@@ -529,7 +529,7 @@ export function CRM() {
                         {lead.status === 'Fechado' && (
                           <button 
                             onClick={() => enviarOnboardingMGS(lead.telefone, lead.nome)} 
-                            className="w-full bg-[#FFAB00] hover:bg-[#e69a00] text-black font-bold py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors text-sm"
+                            className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors text-sm"
                           >
                             <MessageCircle size={16} />
                             Enviar Onboarding

@@ -41,7 +41,7 @@ export function WhatsAppIntegrationModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
       <div className="bg-[#1e1e1e] border border-[#333] rounded-xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         <div className="flex justify-between items-center p-4 border-b border-[#333] bg-[#121212]">
-          <h2 className="text-[#FFAB00] font-bold text-lg flex items-center gap-2">
+          <h2 className="text-[#3b82f6] font-bold text-lg flex items-center gap-2">
             <MessageCircle className="w-5 h-5" />
             Integração WhatsApp Web
           </h2>
@@ -60,7 +60,7 @@ export function WhatsAppIntegrationModal({ onClose }: { onClose: () => void }) {
               <span className="text-xs text-gray-400 font-mono">bookmarklet.js</span>
               <button 
                 onClick={handleCopy}
-                className="text-xs flex items-center gap-1 text-[#FFAB00] hover:text-white transition-colors"
+                className="text-xs flex items-center gap-1 text-[#3b82f6] hover:text-white transition-colors"
               >
                 {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                 {copied ? 'Copiado!' : 'Copiar Código'}

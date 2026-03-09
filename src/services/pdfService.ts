@@ -7,7 +7,7 @@ export const gerarPropostaMGS = (dados: SolarAnalysisResult & { nome?: string })
 
   // Cabeçalho MGS SOLAR COMMAND
   doc.setFontSize(22);
-  doc.setTextColor(255, 171, 0); // O laranja/dourado da sua marca
+  doc.setTextColor(59, 130, 246); // Azul da marca
   doc.text("MGS SYSTEM SOLAR - PROPOSTA", 10, 20);
   
   doc.setFontSize(12);

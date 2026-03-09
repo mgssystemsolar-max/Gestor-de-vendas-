@@ -59,7 +59,7 @@ export function UploadSection({ onAnalysisComplete }: UploadSectionProps) {
       <CardContent className="flex flex-col items-center justify-center py-12 text-center">
         <div
           className={`w-full h-64 flex flex-col items-center justify-center rounded-lg transition-colors ${
-            isDragging ? 'bg-orange-50 border-orange-500' : ''
+            isDragging ? 'bg-blue-50 border-blue-500' : ''
           }`}
           onDragOver={(e) => {
             e.preventDefault();
@@ -70,7 +70,7 @@ export function UploadSection({ onAnalysisComplete }: UploadSectionProps) {
         >
           {isLoading ? (
             <div className="flex flex-col items-center space-y-4">
-              <Loader2 className="w-12 h-12 text-orange-600 animate-spin" />
+              <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
               <div className="space-y-1">
                 <p className="text-lg font-medium text-slate-900">Analisando Fatura...</p>
                 <p className="text-sm text-slate-500">Nossa IA está extraindo os dados de consumo.</p>
@@ -79,7 +79,7 @@ export function UploadSection({ onAnalysisComplete }: UploadSectionProps) {
           ) : (
             <>
               <div className="p-4 bg-white rounded-full shadow-sm mb-4">
-                <Upload className="w-8 h-8 text-orange-600" />
+                <Upload className="w-8 h-8 text-blue-600" />
               </div>
               <h3 className="text-lg font-semibold text-slate-900 mb-1">
                 Arraste sua fatura de energia aqui

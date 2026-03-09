@@ -47,7 +47,7 @@ export function ManualInput({ onAnalysisComplete }: ManualInputProps) {
                 required
                 type="number"
                 placeholder="Ex: 450"
-                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 value={formData.consumo}
                 onChange={(e) => setFormData({ ...formData, consumo: e.target.value })}
               />
@@ -58,7 +58,7 @@ export function ManualInput({ onAnalysisComplete }: ManualInputProps) {
                 required
                 type="text"
                 placeholder="Ex: 0.95"
-                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 value={formData.tarifa}
                 onChange={(e) => setFormData({ ...formData, tarifa: e.target.value })}
               />
@@ -66,7 +66,7 @@ export function ManualInput({ onAnalysisComplete }: ManualInputProps) {
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700">Tipo de Ligação</label>
               <select
-                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white"
+                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
                 value={formData.tipo}
                 onChange={(e) => setFormData({ ...formData, tipo: e.target.value as any })}
               >

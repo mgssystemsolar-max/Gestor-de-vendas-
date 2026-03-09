@@ -70,7 +70,7 @@ const StatusManutencao: React.FC<{ lead: MaintenanceLead }> = ({ lead }) => {
         <button 
           onClick={() => abrirMonitoramento(lead.linkPortal)} 
           className="flex-1 min-w-[120px] flex items-center justify-center gap-2 text-sm font-bold transition-transform hover:scale-105 active:scale-95"
-          style={{ background: '#FFAB00', color: '#000', border: 'none', padding: '10px', borderRadius: '8px', cursor: 'pointer' }}
+          style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '10px', borderRadius: '8px', cursor: 'pointer' }}
         >
           👁️ Ver Gráfico
         </button>
@@ -128,7 +128,7 @@ export function MaintenanceDashboard() {
   return (
     <div className="flex flex-col bg-[#121212] min-h-[calc(100vh-64px)] p-6">
       <div className="mb-8 max-w-7xl mx-auto w-full">
-        <h2 className="text-2xl font-bold text-[#FFAB00] flex items-center gap-2 mb-2">
+        <h2 className="text-2xl font-bold text-[#3b82f6] flex items-center gap-2 mb-2">
           <Wrench className="w-6 h-6" />
           Monitoramento e Manutenção (O&M)
         </h2>
