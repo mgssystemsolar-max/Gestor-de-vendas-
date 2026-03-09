@@ -50,6 +50,41 @@ async function startServer() {
     }
   });
 
+  app.post("/api/novo-lead", async (req, res) => {
+    try {
+      const lead = req.body;
+      const database = db(); // Lazy initialization
+      
+      // Salva direto na coleção de Leads do MGS COMMAND
+      // Usamos 'leads_solar' para manter consistência com a rota /api/leads
+      // ou podemos usar 'leads' se for uma coleção separada. Vamos usar 'leads_solar'
+      // para aparecer no CRM atual, ou 'leads' como o usuário pediu.
+      // Vou salvar em 'leads_solar' para integrar com o CRM existente, mas com os dados recebidos.
+      
+      const leadData = {
+        nome: lead.nome || "Cliente Novo",
+        telefone: lead.telefone || "",
+        consumo_kwh: parseFloat(lead.consumo_kwh) || 0,
+        origem: lead.origem || "Site Institucional MGS",
+        status: "Novo", // Mapeando para a coluna inicial do CRM
+        data_criacao: lead.data_contato || new Date().toISOString(),
+        ultimo_contato: new Date().toISOString(),
+        ...lead
+      };
+
+      if (lead.telefone) {
+        await database.collection('leads_solar').doc(lead.telefone).set(leadData, { merge: true });
+      } else {
+        await database.collection('leads_solar').add(leadData);
+      }
+      
+      return res.status(200).json({ message: "Lead capturado com sucesso!" });
+    } catch (error: any) {
+      console.error("Erro ao salvar lead do site:", error);
+      return res.status(500).json({ error: error.message || "Falha na gravação" });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
