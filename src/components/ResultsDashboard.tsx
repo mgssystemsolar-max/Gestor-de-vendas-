@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { SolarAnalysisResult } from '../services/geminiService';
-import { Zap, DollarSign, Sun, TrendingUp, CheckCircle2, FileDown } from 'lucide-react';
+import { Zap, DollarSign, Sun, TrendingUp, CheckCircle2, FileDown, Save } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { gerarPropostaMGS } from '../services/pdfService';
 import { Button } from './ui/Button';
@@ -12,10 +12,56 @@ interface ResultsDashboardProps {
 }
 
 export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
+  const [nome, setNome] = useState('');
+  const [telefone, setTelefone] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+
   const chartData = [
     { name: 'Atual', valor: data.valor_fatura, color: '#94a3b8' },
     { name: 'Com Solar', valor: data.valor_fatura - data.economia_mensal, color: '#ea580c' },
   ];
+
+  const handleSaveLead = async () => {
+    if (!telefone) {
+      setSaveMessage('Telefone é obrigatório para salvar o lead.');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveMessage('');
+
+    try {
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: nome,
+          phone: telefone,
+          kwh: data.consumo_kwh,
+          value: data.valor_fatura,
+          type: data.tipo_ligacao,
+          payback: data.payback_estimado
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setSaveMessage('Lead salvo com sucesso no CRM!');
+        setNome('');
+        setTelefone('');
+      } else {
+        setSaveMessage(result.error || 'Erro ao salvar lead.');
+      }
+    } catch (error) {
+      setSaveMessage('Erro de conexão ao salvar lead.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -100,8 +146,41 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
               </div>
             </div>
             
+            <div className="mt-8 pt-6 border-t border-slate-200">
+              <h4 className="text-sm font-semibold text-slate-900 mb-4">Salvar no CRM</h4>
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <input 
+                  type="text" 
+                  placeholder="Nome do Cliente" 
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+                <input 
+                  type="tel" 
+                  placeholder="Telefone (ex: 5511999999999)" 
+                  value={telefone}
+                  onChange={(e) => setTelefone(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+                <Button 
+                  onClick={handleSaveLead} 
+                  disabled={isSaving || !telefone}
+                  className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {isSaving ? 'Salvando...' : 'Salvar Lead'}
+                </Button>
+              </div>
+              {saveMessage && (
+                <p className={`mt-2 text-sm ${saveMessage.includes('sucesso') ? 'text-green-600' : 'text-red-600'}`}>
+                  {saveMessage}
+                </p>
+              )}
+            </div>
+
             <div className="mt-6 flex justify-end">
-              <Button onClick={() => gerarPropostaMGS(data)} className="w-full sm:w-auto">
+              <Button onClick={() => gerarPropostaMGS({ ...data, nome })} className="w-full sm:w-auto">
                 <FileDown className="w-4 h-4 mr-2" />
                 Baixar Proposta PDF
               </Button>
