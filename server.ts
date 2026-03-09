@@ -62,25 +62,23 @@ async function startServer() {
       const lead = req.body;
       const database = db(); // Lazy initialization
       
-      // Salva direto na coleção de Leads do MGS COMMAND
-      // Usamos 'leads_solar' para manter consistência com a rota /api/leads
-      // ou podemos usar 'leads' se for uma coleção separada. Vamos usar 'leads_solar'
-      // para aparecer no CRM atual, ou 'leads' como o usuário pediu.
-      // Vou salvar em 'leads_solar' para integrar com o CRM existente, mas com os dados recebidos.
-      
+      // Mapeia o JSON do WhatsApp IA para a estrutura do CRM
       const leadData = {
-        nome: lead.nome || "Cliente Novo",
+        nome: lead.cliente || lead.nome || "Cliente Novo",
         telefone: lead.telefone || "",
-        consumo_kwh: parseFloat(lead.consumo_kwh) || 0,
-        origem: lead.origem || "Site Institucional MGS",
+        consumo_kwh: parseFloat(lead.consumo_medio || lead.consumo_kwh) || 0,
+        tipo_ligacao: lead.tipo_ligacao || "Bifásico",
+        potencia_sugerida_kwp: parseFloat(lead.kwp_sugerido) || 0,
+        investimento_estimado: parseFloat(lead.investimento_estimado) || 0,
+        payback_estimado: lead.payback_anos ? `${lead.payback_anos} anos` : (lead.payback_estimado || "0 anos"),
+        origem: lead.origem || "WhatsApp IA",
         status: "Novo", // Mapeando para a coluna inicial do CRM
-        data_criacao: lead.data_contato || new Date().toISOString(),
+        data_criacao: new Date().toISOString(),
         ultimo_contato: new Date().toISOString(),
-        ...lead
       };
 
-      if (lead.telefone) {
-        await database.collection('leads_solar').doc(lead.telefone).set(leadData, { merge: true });
+      if (leadData.telefone) {
+        await database.collection('leads_solar').doc(leadData.telefone).set(leadData, { merge: true });
       } else {
         await database.collection('leads_solar').add(leadData);
       }
