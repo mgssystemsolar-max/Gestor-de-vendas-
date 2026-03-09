@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { SolarAnalysisResult } from '../services/geminiService';
 import { Zap, DollarSign, Sun, TrendingUp, CheckCircle2, FileDown, Save } from 'lucide-react';
@@ -16,6 +16,14 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
   const [telefone, setTelefone] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const cliente = params.get('cliente');
+    if (cliente) {
+      setNome(cliente);
+    }
+  }, []);
 
   const chartData = [
     { name: 'Atual', valor: data.valor_fatura, color: '#94a3b8' },
@@ -51,6 +59,8 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
 
       if (response.ok) {
         setSaveMessage('Lead salvo com sucesso no CRM!');
+        alert("MGS COMMAND: Lead sincronizado com o Dashboard!");
+        gerarPropostaMGS({ ...data, nome });
         setNome('');
         setTelefone('');
       } else {
