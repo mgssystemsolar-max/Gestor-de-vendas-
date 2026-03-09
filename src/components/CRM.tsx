@@ -6,7 +6,7 @@ interface Lead {
   nome: string;
   consumo: number;
   telefone: string;
-  status: "Novo" | "Proposta" | "Vistoria" | "Fechado";
+  status: "Novo" | "Agendado" | "Proposta" | "Vistoria" | "Fechado";
   source: "WhatsApp" | "Website" | "Manual";
   data_criacao: string;
   ultimo_contato: string;
@@ -33,12 +33,31 @@ export function CRM() {
   const [filterDate, setFilterDate] = useState<string>('All Time');
   const [filterStatus, setFilterStatus] = useState<string>('All');
 
-  const columns = ["Novo", "Proposta", "Vistoria", "Fechado"] as const;
+  const columns = ["Novo", "Agendado", "Proposta", "Vistoria", "Fechado"] as const;
 
   const abrirNoWhats = (telefone: string, id: string) => {
     window.open(`https://wa.me/${telefone}`, '_blank');
     setLeads(prev => prev.map(lead => 
       lead.id === id ? { ...lead, contacted: true } : lead
+    ));
+  };
+
+  const enviarOnboardingMGS = (telefone: string, nomeCliente: string) => {
+    const textoBoasVindas = `*PARABÉNS! VOCÊ AGORA É MGS SOLAR!* ☀️\n\n` +
+        `Olá ${nomeCliente}, ficamos muito felizes em iniciar sua jornada rumo à liberdade energética!\n\n` +
+        `Para darmos entrada no processo de *Homologação junto à Concessionária*, preciso que me envie fotos dos seguintes documentos:\n` +
+        `1️⃣ RG ou CNH (Frente e Verso)\n` +
+        `2️⃣ Cópia do IPTU (Folha onde consta a área construída)\n` +
+        `3️⃣ Foto do Padrão de Entrada (Onde fica o relógio)\n\n` +
+        `Assim que enviar, nosso setor de engenharia já inicia o projeto técnico! 🚀`;
+
+    const encodedText = encodeURIComponent(textoBoasVindas);
+    window.open(`https://wa.me/${telefone}?text=${encodedText}`, '_blank');
+  };
+
+  const handleStatusChange = (id: string, newStatus: Lead['status']) => {
+    setLeads(prev => prev.map(lead => 
+      lead.id === id ? { ...lead, status: newStatus, ultimo_contato: new Date().toISOString() } : lead
     ));
   };
 
@@ -251,6 +270,20 @@ export function CRM() {
                         <p className="text-sm text-gray-400">Consumo: <span className="text-gray-200">{lead.consumo} kWh</span></p>
                         <p className="text-sm text-gray-400">Origem: <span className="text-gray-200">{lead.source}</span></p>
                         <p className="text-sm text-gray-400">Valor: <span className="text-[#FFAB00] font-medium">R$ {lead.valor_sistema.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></p>
+                        
+                        <div className="mt-3 pt-3 border-t border-[#444] flex items-center gap-2">
+                          <span className="text-xs text-gray-500">Mover para:</span>
+                          <select 
+                            value={lead.status}
+                            onChange={(e) => handleStatusChange(lead.id, e.target.value as Lead['status'])}
+                            className="bg-[#1e1e1e] border border-[#555] text-white text-xs rounded px-2 py-1.5 focus:outline-none focus:border-[#FFAB00] flex-1"
+                          >
+                            {columns.map(col => (
+                              <option key={col} value={col}>{col}</option>
+                            ))}
+                          </select>
+                        </div>
+
                         {taParado && (
                           <p className="text-xs text-[#ff6b6b] font-medium mt-2">
                             ⚠️ Parado há {Math.floor(horasPassadas / 24)} dias
@@ -258,13 +291,24 @@ export function CRM() {
                         )}
                       </div>
                       
-                      <button 
-                        onClick={() => abrirNoWhats(lead.telefone, lead.id)} 
-                        className="w-full bg-[#25D366] hover:bg-[#1da851] text-white font-bold py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors text-sm"
-                      >
-                        <MessageCircle size={16} />
-                        {taParado ? 'COBRAR AGORA (WhatsApp)' : 'Abrir Chat'}
-                      </button>
+                      <div className="flex flex-col gap-2 mt-4">
+                        {lead.status === 'Fechado' && (
+                          <button 
+                            onClick={() => enviarOnboardingMGS(lead.telefone, lead.nome)} 
+                            className="w-full bg-[#FFAB00] hover:bg-[#e69a00] text-black font-bold py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors text-sm"
+                          >
+                            <MessageCircle size={16} />
+                            Enviar Onboarding
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => abrirNoWhats(lead.telefone, lead.id)} 
+                          className="w-full bg-[#25D366] hover:bg-[#1da851] text-white font-bold py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors text-sm"
+                        >
+                          <MessageCircle size={16} />
+                          {taParado ? 'COBRAR AGORA (WhatsApp)' : 'Abrir Chat'}
+                        </button>
+                      </div>
                     </div>
                   )})
                 )}
