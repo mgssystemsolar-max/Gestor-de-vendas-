@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { MessageCircle, User, Filter, BellRing, X, Calculator, CalendarPlus, FileText } from 'lucide-react';
+import { MessageCircle, User, Filter, BellRing, X, Calculator, CalendarPlus, FileText, ClipboardPaste } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, onSnapshot, doc, updateDoc, addDoc } from 'firebase/firestore';
 import { WhatsAppModal } from './WhatsAppModal';
@@ -22,6 +22,43 @@ interface Lead {
   ultima_mensagem?: string;
 }
 
+// Helper to extract lead info from text
+const extractLeadInfo = (text: string) => {
+  let nome = '';
+  let telefone = '';
+
+  // Extract phone
+  const phoneRegex = /(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?\d{4,5}[-\s]?\d{4}/g;
+  const phones = text.match(phoneRegex);
+  if (phones && phones.length > 0) {
+    telefone = phones[0].replace(/\D/g, '');
+    if (telefone.length === 10 || telefone.length === 11) {
+      telefone = '55' + telefone;
+    }
+  }
+
+  // Extract name
+  const nameMatch = text.match(/Nome:\s*([^\n]+)/i);
+  if (nameMatch) {
+    nome = nameMatch[1].trim();
+  } else {
+    const waMatch = text.match(/\]\s*([^:]+):/);
+    if (waMatch) {
+      nome = waMatch[1].trim();
+    } else {
+      const lines = text.split('\n');
+      for (const line of lines) {
+        if (/[a-zA-Z]{3,}/.test(line) && !phoneRegex.test(line) && line.length < 50) {
+          nome = line.trim();
+          break;
+        }
+      }
+    }
+  }
+
+  return { nome, telefone };
+};
+
 // Mock data
 const initialLeads: Lead[] = [
   { id: '1', nome: 'João Silva', consumo: 450, telefone: '5511999999999', status: 'Novo', source: 'WhatsApp', data_criacao: new Date().toISOString(), ultimo_contato: new Date().toISOString(), valor_sistema: 12500, notas: "Cliente interessado em financiamento.", historico: [{ data: new Date().toISOString(), acao: "Lead criado via WhatsApp" }], prioridade: "URGENTE", ultima_mensagem: "Gostei da proposta, podemos fechar hoje?" },
@@ -31,7 +68,7 @@ const initialLeads: Lead[] = [
   { id: '5', nome: 'Pedro Rocha', consumo: 600, telefone: '5511955555555', status: 'Novo', source: 'Website', data_criacao: new Date().toISOString(), ultimo_contato: new Date().toISOString(), valor_sistema: 18000, historico: [{ data: new Date().toISOString(), acao: "Lead criado via Website" }] },
 ];
 
-export function CRM({ onNavigateToCalculator, onNavigateToPro }: { onNavigateToCalculator?: (lead: ActiveLead) => void, onNavigateToPro?: (lead: ActiveLead) => void }) {
+export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) => void }) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
   const isInitialLoad = useRef(true);
@@ -45,7 +82,27 @@ export function CRM({ onNavigateToCalculator, onNavigateToPro }: { onNavigateToC
   const [showNewLeadModal, setShowNewLeadModal] = useState(false);
   const [newLeadForm, setNewLeadForm] = useState({ nome: '', telefone: '', consumo: '' });
 
-  
+  useEffect(() => {
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      // Don't intercept if user is typing in an input or textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      
+      const pastedText = e.clipboardData?.getData('text');
+      if (pastedText) {
+        const { nome, telefone } = extractLeadInfo(pastedText);
+        if (telefone) {
+          setNewLeadForm({ nome, telefone, consumo: '' });
+          setShowNewLeadModal(true);
+        }
+      }
+    };
+
+    window.addEventListener('paste', handleGlobalPaste);
+    return () => window.removeEventListener('paste', handleGlobalPaste);
+  }, []);
+
   useEffect(() => {
     if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
       Notification.requestPermission();
@@ -678,32 +735,18 @@ export function CRM({ onNavigateToCalculator, onNavigateToPro }: { onNavigateToC
                         )}
                         
                         {(lead.status === 'Novo' || lead.status === 'Vistoria' || lead.status === 'Agendado') && (
-                          <div className="grid grid-cols-2 gap-2">
-                            <button 
-                              onClick={() => onNavigateToCalculator?.({
-                                id: lead.id,
-                                nome: lead.nome,
-                                telefone: lead.telefone,
-                                consumo: lead.consumo
-                              })}
-                              className="w-full bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-bold py-2 px-2 rounded flex flex-col items-center justify-center gap-1 transition-colors text-xs text-center"
-                            >
-                              <Calculator size={14} />
-                              Calculadora
-                            </button>
-                            <button 
-                              onClick={() => onNavigateToPro?.({
-                                id: lead.id,
-                                nome: lead.nome,
-                                telefone: lead.telefone,
-                                consumo: lead.consumo
-                              })}
-                              className="w-full bg-[#10b981] hover:bg-[#059669] text-white font-bold py-2 px-2 rounded flex flex-col items-center justify-center gap-1 transition-colors text-xs text-center shadow-[0_0_10px_rgba(16,185,129,0.3)]"
-                            >
-                              <FileText size={14} />
-                              MGS PRO
-                            </button>
-                          </div>
+                          <button 
+                            onClick={() => onNavigateToPro?.({
+                              id: lead.id,
+                              nome: lead.nome,
+                              telefone: lead.telefone,
+                              consumo: lead.consumo
+                            })}
+                            className="w-full bg-[#10b981] hover:bg-[#059669] text-white font-bold py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors text-sm shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+                          >
+                            <FileText size={16} />
+                            Gerar Proposta (MGS PRO)
+                          </button>
                         )}
 
                         {lead.status === 'Fechado' && (
@@ -754,6 +797,29 @@ export function CRM({ onNavigateToCalculator, onNavigateToPro }: { onNavigateToC
                 className="text-white/80 hover:text-white hover:bg-white/20 p-2 rounded-full transition-colors"
               >
                 <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-6 pt-4">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const text = await navigator.clipboard.readText();
+                    const { nome, telefone } = extractLeadInfo(text);
+                    setNewLeadForm(prev => ({
+                      ...prev,
+                      nome: nome || prev.nome,
+                      telefone: telefone || prev.telefone
+                    }));
+                  } catch (err) {
+                    console.error('Failed to read clipboard', err);
+                  }
+                }}
+                className="w-full bg-[#333] hover:bg-[#444] text-white text-sm py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-[#444]"
+              >
+                <ClipboardPaste size={16} />
+                Preencher com Área de Transferência
               </button>
             </div>
             

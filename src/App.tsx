@@ -1,11 +1,6 @@
 import { useState } from 'react';
-import { UploadSection } from './components/UploadSection';
-import { ResultsDashboard } from './components/ResultsDashboard';
-import { ManualInput } from './components/ManualInput';
-import { SolarAnalysisResult } from './services/geminiService';
-import { Zap, LayoutDashboard, Calculator, MessageCircle, Wrench, FileText } from 'lucide-react';
+import { Zap, LayoutDashboard, MessageCircle, Wrench, FileText } from 'lucide-react';
 import { CRM } from './components/CRM';
-import { WhatsAppIntegrationModal } from './components/WhatsAppIntegrationModal';
 import { MaintenanceDashboard } from './components/MaintenanceDashboard';
 import { MGSSolarPro } from './components/MGSSolarPro';
 
@@ -17,16 +12,8 @@ export interface ActiveLead {
 }
 
 function App() {
-  const [analysisResult, setAnalysisResult] = useState<SolarAnalysisResult | null>(null);
-  const [currentView, setCurrentView] = useState<'calculator' | 'crm' | 'maintenance' | 'pro'>('crm');
-  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [currentView, setCurrentView] = useState<'crm' | 'maintenance' | 'pro'>('crm');
   const [activeLead, setActiveLead] = useState<ActiveLead | null>(null);
-
-  const handleNavigateToCalculator = (lead: ActiveLead) => {
-    setActiveLead(lead);
-    setCurrentView('calculator');
-    setAnalysisResult(null); // Reset previous analysis
-  };
 
   const handleNavigateToPro = (lead: ActiveLead) => {
     setActiveLead(lead);
@@ -49,29 +36,10 @@ function App() {
               </p>
             </div>
           </div>
-          
-          <button 
-            onClick={() => setShowWhatsAppModal(true)}
-            className="hidden sm:flex items-center gap-2 bg-[#25D366] hover:bg-[#1da851] text-white px-4 py-2 rounded-md text-sm font-bold transition-colors shadow-md"
-          >
-            <MessageCircle className="w-4 h-4" />
-            Integração WhatsApp
-          </button>
         </div>
         
         {/* Navigation */}
         <div className="flex justify-center space-x-1 bg-[#121212] py-2 overflow-x-auto px-2 custom-scrollbar">
-          <button
-            onClick={() => setCurrentView('calculator')}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-              currentView === 'calculator'
-                ? 'bg-[#3b82f6] text-white'
-                : 'text-gray-400 hover:text-white hover:bg-[#333]'
-            }`}
-          >
-            <Calculator className="w-4 h-4 mr-2" />
-            Calculadora Solar
-          </button>
           <button
             onClick={() => setCurrentView('crm')}
             className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
@@ -105,64 +73,17 @@ function App() {
             <FileText className="w-4 h-4 mr-2" />
             MGS Solar PRO
           </button>
-          <button 
-            onClick={() => setShowWhatsAppModal(true)}
-            className="sm:hidden flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors text-[#25D366] hover:bg-[#333] whitespace-nowrap"
-          >
-            <MessageCircle className="w-4 h-4 mr-2" />
-            WhatsApp
-          </button>
         </div>
       </header>
 
-      <main className={`flex-grow ${currentView !== 'calculator' && currentView !== 'pro' ? 'bg-[#121212]' : currentView === 'pro' ? 'bg-white' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'}`}>
+      <main className={`flex-grow ${currentView !== 'pro' ? 'bg-[#121212]' : 'bg-white'}`}>
         {currentView === 'crm' ? (
-          <CRM onNavigateToCalculator={handleNavigateToCalculator} onNavigateToPro={handleNavigateToPro} />
+          <CRM onNavigateToPro={handleNavigateToPro} />
         ) : currentView === 'maintenance' ? (
           <MaintenanceDashboard />
         ) : currentView === 'pro' ? (
           <MGSSolarPro />
-        ) : (
-          <>
-            {!analysisResult ? (
-              <div className="space-y-12 animate-in fade-in duration-500">
-                <div className="text-center space-y-4 max-w-3xl mx-auto">
-                  <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-                    Transforme sua conta de luz em <span className="text-blue-600">investimento</span>.
-                  </h1>
-                  <p className="text-lg text-slate-600 leading-relaxed">
-                    Utilize nossa inteligência artificial para analisar sua fatura, dimensionar seu sistema fotovoltaico
-                    e descobrir o retorno real do seu investimento com segurança e precisão técnica.
-                  </p>
-                </div>
-
-                <div className="space-y-8">
-                  <UploadSection onAnalysisComplete={setAnalysisResult} />
-                  
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-slate-200" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-slate-50 px-2 text-slate-500">Opções de entrada</span>
-                    </div>
-                  </div>
-
-                  <ManualInput onAnalysisComplete={setAnalysisResult} activeLead={activeLead} />
-                </div>
-              </div>
-            ) : (
-              <ResultsDashboard 
-                data={analysisResult} 
-                onReset={() => {
-                  setAnalysisResult(null);
-                  setActiveLead(null);
-                }} 
-                activeLead={activeLead}
-              />
-            )}
-          </>
-        )}
+        ) : null}
       </main>
 
       {/* Footer */}
@@ -175,10 +96,6 @@ function App() {
           </p>
         </div>
       </footer>
-
-      {showWhatsAppModal && (
-        <WhatsAppIntegrationModal onClose={() => setShowWhatsAppModal(false)} />
-      )}
     </div>
   );
 }
