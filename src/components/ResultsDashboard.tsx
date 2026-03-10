@@ -5,6 +5,7 @@ import { Zap, DollarSign, Sun, TrendingUp, CheckCircle2, FileDown, Save, Message
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { gerarPropostaMGS } from '../services/pdfService';
 import { Button } from './ui/Button';
+import { WhatsAppModal } from './WhatsAppModal';
 
 interface ResultsDashboardProps {
   data: SolarAnalysisResult;
@@ -17,6 +18,10 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [querMandarAudio, setQuerMandarAudio] = useState(false);
+  
+  // WhatsApp Modal State
+  const [waModalOpen, setWaModalOpen] = useState(false);
+  const [waModalData, setWaModalData] = useState({ phone: '', message: '', name: '' });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -89,8 +94,13 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
       `Investimento Estimado: R$ ${data.investimento_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n` +
       `Payback: ${data.payback_estimado}\n\n` +
       `Qualquer dúvida estou à disposição!`;
-    const encodedText = encodeURIComponent(texto);
-    window.open(`https://wa.me/${telefone}?text=${encodedText}`, '_blank');
+      
+    setWaModalData({
+      phone: telefone,
+      message: texto,
+      name: nome
+    });
+    setWaModalOpen(true);
   };
 
   const enviarDadosPosAudio = () => {
@@ -103,8 +113,13 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
       `Economia Mensal: R$ ${data.economia_mensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n` +
       `Investimento Estimado: R$ ${data.investimento_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n` +
       `Payback: ${data.payback_estimado}`;
-    const encodedText = encodeURIComponent(texto);
-    window.open(`https://wa.me/${telefone}?text=${encodedText}`, '_blank');
+      
+    setWaModalData({
+      phone: telefone,
+      message: texto,
+      name: nome
+    });
+    setWaModalOpen(true);
   };
 
   return (
@@ -300,6 +315,14 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
           ← Realizar Nova Análise
         </button>
       </div>
+
+      <WhatsAppModal 
+        isOpen={waModalOpen}
+        onClose={() => setWaModalOpen(false)}
+        phone={waModalData.phone}
+        defaultMessage={waModalData.message}
+        contactName={waModalData.name}
+      />
     </div>
   );
 }

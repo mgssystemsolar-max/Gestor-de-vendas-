@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Wrench, Activity, AlertTriangle } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
+import { WhatsAppModal } from './WhatsAppModal';
 
 interface MaintenanceLead {
   id: string;
@@ -20,7 +21,7 @@ const mockMaintenanceLeads: MaintenanceLead[] = [
   { id: '4', nome: 'Ana Santos', telefone: '5511966666666', modeloInversor: 'Solis 4K-2G', linkPortal: 'https://www.soliscloud.com', lastUpdate: Date.now() - 150000000, endereco: 'Rua Oscar Freire, 100, São Paulo - SP' },
 ];
 
-const StatusManutencao: React.FC<{ lead: MaintenanceLead }> = ({ lead }) => {
+const StatusManutencao: React.FC<{ lead: MaintenanceLead, onOpenWhatsApp: (phone: string, message: string, name: string) => void }> = ({ lead, onOpenWhatsApp }) => {
   // Simulação de lógica: Se não houver log há 24h, fica vermelho
   const isOffline = lead.lastUpdate < Date.now() - 86400000; 
   
@@ -32,8 +33,8 @@ const StatusManutencao: React.FC<{ lead: MaintenanceLead }> = ({ lead }) => {
   };
 
   const enviarTecnico = (telefone: string) => {
-    const texto = encodeURIComponent(`Olá ${lead.nome}, identificamos uma instabilidade na comunicação do seu inversor ${lead.modeloInversor}. Nossa equipe técnica entrará em contato para agendar uma verificação.`);
-    window.open(`https://wa.me/${telefone}?text=${texto}`, '_blank');
+    const texto = `Olá ${lead.nome}, identificamos uma instabilidade na comunicação do seu inversor ${lead.modeloInversor}. Nossa equipe técnica entrará em contato para agendar uma verificação.`;
+    onOpenWhatsApp(telefone, texto, lead.nome);
   };
 
   const enviarRotaAoTecnico = (enderecoCliente: string, nomeTecnico: string = "Técnico") => {
@@ -42,8 +43,7 @@ const StatusManutencao: React.FC<{ lead: MaintenanceLead }> = ({ lead }) => {
     const urlMaps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(enderecoCliente)}`;
     const mensagemZap = `MGS COMMAND: Olá ${nomeTecnico}, nova manutenção em: ${urlMaps}`;
     
-    // Abre o WhatsApp do técnico com a localização do cliente
-    window.open(`https://wa.me/${telefoneTecnico}?text=${encodeURIComponent(mensagemZap)}`, '_blank');
+    onOpenWhatsApp(telefoneTecnico, mensagemZap, nomeTecnico);
   };
 
   return (
@@ -111,6 +111,13 @@ const StatusManutencao: React.FC<{ lead: MaintenanceLead }> = ({ lead }) => {
 
 export function MaintenanceDashboard() {
   const [leads, setLeads] = useState<MaintenanceLead[]>(mockMaintenanceLeads);
+  const [waModalOpen, setWaModalOpen] = useState(false);
+  const [waModalData, setWaModalData] = useState({ phone: '', message: '', name: '' });
+
+  const handleOpenWhatsApp = (phone: string, message: string, name: string) => {
+    setWaModalData({ phone, message, name });
+    setWaModalOpen(true);
+  };
 
   useEffect(() => {
     if (!db) return;
@@ -187,9 +194,17 @@ export function MaintenanceDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto w-full">
         {sortedLeads.map(lead => (
-          <StatusManutencao key={lead.id} lead={lead} />
+          <StatusManutencao key={lead.id} lead={lead} onOpenWhatsApp={handleOpenWhatsApp} />
         ))}
       </div>
+
+      <WhatsAppModal 
+        isOpen={waModalOpen}
+        onClose={() => setWaModalOpen(false)}
+        phone={waModalData.phone}
+        defaultMessage={waModalData.message}
+        contactName={waModalData.name}
+      />
     </div>
   );
 }

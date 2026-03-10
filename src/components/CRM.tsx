@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { MessageCircle, User, Filter, BellRing, X } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { WhatsAppModal } from './WhatsAppModal';
 
 interface Lead {
   id: string;
@@ -34,6 +35,11 @@ export function CRM() {
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
   const isInitialLoad = useRef(true);
   const [newLeadAlert, setNewLeadAlert] = useState<{nome: string, source: string} | null>(null);
+  
+  // WhatsApp Modal State
+  const [waModalOpen, setWaModalOpen] = useState(false);
+  const [waModalData, setWaModalData] = useState({ phone: '', message: '', name: '' });
+
   
   useEffect(() => {
     if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
@@ -121,10 +127,17 @@ export function CRM() {
   const columns = ["Novo", "Agendado", "Proposta", "Vistoria", "Fechado"] as const;
 
   const abrirNoWhats = async (telefone: string, id: string) => {
-    window.open(`https://wa.me/${telefone}`, '_blank');
-    
     const lead = leads.find(l => l.id === id);
-    if (!lead || lead.contacted) return;
+    if (!lead) return;
+
+    setWaModalData({
+      phone: telefone,
+      message: `Olá ${lead.nome}, tudo bem? Sou da MgS Solar Command e vi que você tem interesse em energia solar.`,
+      name: lead.nome
+    });
+    setWaModalOpen(true);
+    
+    if (lead.contacted) return;
 
     const newHistorico = lead.historico ? [...lead.historico] : [];
     newHistorico.push({ data: new Date().toISOString(), acao: "Marcado como Contato Realizado via WhatsApp" });
@@ -154,8 +167,12 @@ export function CRM() {
         `3️⃣ Foto do Padrão de Entrada (Onde fica o relógio)\n\n` +
         `Assim que enviar, nosso setor de engenharia já inicia o projeto técnico! 🚀`;
 
-    const encodedText = encodeURIComponent(textoBoasVindas);
-    window.open(`https://wa.me/${telefone}?text=${encodedText}`, '_blank');
+    setWaModalData({
+      phone: telefone,
+      message: textoBoasVindas,
+      name: nomeCliente
+    });
+    setWaModalOpen(true);
   };
 
   const handleStatusChange = async (id: string, newStatus: Lead['status']) => {
@@ -617,6 +634,14 @@ export function CRM() {
           );
         })}
       </div>
+      
+      <WhatsAppModal 
+        isOpen={waModalOpen}
+        onClose={() => setWaModalOpen(false)}
+        phone={waModalData.phone}
+        defaultMessage={waModalData.message}
+        contactName={waModalData.name}
+      />
     </div>
   );
 }
