@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { MessageCircle, User, Filter, BellRing, X } from 'lucide-react';
+import { MessageCircle, User, Filter, BellRing, X, Calculator, CalendarPlus } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, updateDoc, addDoc } from 'firebase/firestore';
 import { WhatsAppModal } from './WhatsAppModal';
+import { ActiveLead } from '../App';
 
 interface Lead {
   id: string;
@@ -30,7 +31,7 @@ const initialLeads: Lead[] = [
   { id: '5', nome: 'Pedro Rocha', consumo: 600, telefone: '5511955555555', status: 'Novo', source: 'Website', data_criacao: new Date().toISOString(), ultimo_contato: new Date().toISOString(), valor_sistema: 18000, historico: [{ data: new Date().toISOString(), acao: "Lead criado via Website" }] },
 ];
 
-export function CRM() {
+export function CRM({ onNavigateToCalculator }: { onNavigateToCalculator?: (lead: ActiveLead) => void }) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
   const isInitialLoad = useRef(true);
@@ -39,6 +40,10 @@ export function CRM() {
   // WhatsApp Modal State
   const [waModalOpen, setWaModalOpen] = useState(false);
   const [waModalData, setWaModalData] = useState({ phone: '', message: '', name: '' });
+  
+  // New Lead Modal State
+  const [showNewLeadModal, setShowNewLeadModal] = useState(false);
+  const [newLeadForm, setNewLeadForm] = useState({ nome: '', telefone: '', consumo: '' });
 
   
   useEffect(() => {
@@ -125,6 +130,49 @@ export function CRM() {
   const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
 
   const columns = ["Novo", "Agendado", "Proposta", "Vistoria", "Fechado"] as const;
+
+  const handleCreateLead = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLeadForm.nome || !newLeadForm.telefone) return;
+
+    const newLead = {
+      nome: newLeadForm.nome,
+      telefone: newLeadForm.telefone,
+      consumo_kwh: parseInt(newLeadForm.consumo) || 0,
+      status: 'Novo',
+      origem: 'WhatsApp',
+      data_criacao: new Date().toISOString(),
+      ultimo_contato: new Date().toISOString(),
+      contacted: true,
+      historico: [{ data: new Date().toISOString(), acao: "Lead captado via WhatsApp (Manual)" }]
+    };
+
+    if (isFirebaseConnected && db) {
+      try {
+        await addDoc(collection(db, 'leads_solar'), newLead);
+      } catch (error) {
+        console.error("Erro ao criar lead:", error);
+      }
+    } else {
+      const localLead: Lead = {
+        id: Date.now().toString(),
+        nome: newLead.nome,
+        telefone: newLead.telefone,
+        consumo: newLead.consumo_kwh,
+        status: 'Novo',
+        source: 'WhatsApp',
+        data_criacao: newLead.data_criacao,
+        ultimo_contato: newLead.ultimo_contato,
+        contacted: true,
+        valor_sistema: 0,
+        historico: newLead.historico
+      };
+      setLeads(prev => [localLead, ...prev]);
+    }
+
+    setShowNewLeadModal(false);
+    setNewLeadForm({ nome: '', telefone: '', consumo: '' });
+  };
 
   const abrirNoWhats = async (telefone: string, id: string) => {
     const lead = leads.find(l => l.id === id);
@@ -345,7 +393,7 @@ export function CRM() {
       )}
 
       {/* Dashboard Summary */}
-      <div className="flex flex-wrap justify-around p-5 bg-[#1c1c1c] border-b-2 border-[#3b82f6] shadow-md">
+      <div className="flex flex-wrap justify-around p-5 bg-[#1c1c1c] border-b-2 border-[#3b82f6] shadow-md relative">
         <div className="text-center px-4 py-2">
           <p className="text-[#bbb] m-0 text-sm uppercase tracking-wider font-semibold">Pipeline Ativo (Propostas)</p>
           <h2 className="text-[#3b82f6] text-3xl font-bold mt-1">R$ {totalEmPropostas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
@@ -357,6 +405,16 @@ export function CRM() {
         <div className="text-center px-4 py-2">
           <p className="text-[#bbb] m-0 text-sm uppercase tracking-wider font-semibold">Conversão</p>
           <h2 className="text-white text-3xl font-bold mt-1">{conversao}%</h2>
+        </div>
+        
+        <div className="absolute top-4 right-4">
+          <button 
+            onClick={() => setShowNewLeadModal(true)}
+            className="bg-[#25D366] hover:bg-[#1da851] text-white px-4 py-2 rounded-md font-bold text-sm flex items-center gap-2 transition-colors shadow-lg"
+          >
+            <MessageCircle size={16} />
+            Novo Lead (WhatsApp)
+          </button>
         </div>
       </div>
 
@@ -609,6 +667,31 @@ export function CRM() {
                       )}
                       
                       <div className="flex flex-col gap-2 mt-4">
+                        {lead.status === 'Novo' && (
+                          <button 
+                            onClick={() => handleStatusChange(lead.id, 'Vistoria')}
+                            className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white font-bold py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors text-sm"
+                          >
+                            <CalendarPlus size={16} />
+                            Agendar Vistoria
+                          </button>
+                        )}
+                        
+                        {(lead.status === 'Novo' || lead.status === 'Vistoria' || lead.status === 'Agendado') && (
+                          <button 
+                            onClick={() => onNavigateToCalculator?.({
+                              id: lead.id,
+                              nome: lead.nome,
+                              telefone: lead.telefone,
+                              consumo: lead.consumo
+                            })}
+                            className="w-full bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-bold py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors text-sm"
+                          >
+                            <Calculator size={16} />
+                            Gerar Proposta (Calculadora)
+                          </button>
+                        )}
+
                         {lead.status === 'Fechado' && (
                           <button 
                             onClick={() => enviarOnboardingMGS(lead.telefone, lead.nome)} 
@@ -642,6 +725,79 @@ export function CRM() {
         defaultMessage={waModalData.message}
         contactName={waModalData.name}
       />
+
+      {/* New Lead Modal */}
+      {showNewLeadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[#1e1e1e] border border-[#333] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-[#25D366] p-4 flex items-center justify-between">
+              <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                <MessageCircle className="w-5 h-5" />
+                Novo Lead via WhatsApp
+              </h3>
+              <button 
+                onClick={() => setShowNewLeadModal(false)}
+                className="text-white/80 hover:text-white hover:bg-white/20 p-2 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleCreateLead} className="p-6 flex flex-col gap-4">
+              <div>
+                <label className="text-gray-400 text-sm font-medium mb-1 block">Nome do Cliente *</label>
+                <input 
+                  type="text" 
+                  required
+                  value={newLeadForm.nome}
+                  onChange={e => setNewLeadForm({...newLeadForm, nome: e.target.value})}
+                  className="w-full bg-[#121212] border border-[#333] rounded-xl p-3 text-white focus:outline-none focus:border-[#25D366] text-sm"
+                  placeholder="Ex: João Silva"
+                />
+              </div>
+              
+              <div>
+                <label className="text-gray-400 text-sm font-medium mb-1 block">Telefone (WhatsApp) *</label>
+                <input 
+                  type="tel" 
+                  required
+                  value={newLeadForm.telefone}
+                  onChange={e => setNewLeadForm({...newLeadForm, telefone: e.target.value})}
+                  className="w-full bg-[#121212] border border-[#333] rounded-xl p-3 text-white focus:outline-none focus:border-[#25D366] text-sm"
+                  placeholder="Ex: 5511999999999"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-400 text-sm font-medium mb-1 block">Consumo Estimado (kWh) - Opcional</label>
+                <input 
+                  type="number" 
+                  value={newLeadForm.consumo}
+                  onChange={e => setNewLeadForm({...newLeadForm, consumo: e.target.value})}
+                  className="w-full bg-[#121212] border border-[#333] rounded-xl p-3 text-white focus:outline-none focus:border-[#25D366] text-sm"
+                  placeholder="Ex: 450"
+                />
+              </div>
+
+              <div className="mt-4 flex justify-end gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setShowNewLeadModal(false)}
+                  className="px-4 py-2 rounded-xl text-gray-400 hover:text-white hover:bg-[#333] transition-colors text-sm font-medium"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  className="bg-[#25D366] hover:bg-[#1da851] text-white px-6 py-2 rounded-xl font-bold text-sm transition-colors shadow-lg"
+                >
+                  Salvar Lead
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

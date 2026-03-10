@@ -6,13 +6,17 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { gerarPropostaMGS } from '../services/pdfService';
 import { Button } from './ui/Button';
 import { WhatsAppModal } from './WhatsAppModal';
+import { ActiveLead } from '../App';
+import { db } from '../lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 interface ResultsDashboardProps {
   data: SolarAnalysisResult;
   onReset: () => void;
+  activeLead?: ActiveLead | null;
 }
 
-export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
+export function ResultsDashboard({ data, onReset, activeLead }: ResultsDashboardProps) {
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -24,16 +28,21 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
   const [waModalData, setWaModalData] = useState({ phone: '', message: '', name: '' });
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const cliente = params.get('cliente') || params.get('name');
-    const phone = params.get('phone');
-    if (cliente) {
-      setNome(cliente);
+    if (activeLead) {
+      setNome(activeLead.nome);
+      setTelefone(activeLead.telefone);
+    } else {
+      const params = new URLSearchParams(window.location.search);
+      const cliente = params.get('cliente') || params.get('name');
+      const phone = params.get('phone');
+      if (cliente) {
+        setNome(cliente);
+      }
+      if (phone) {
+        setTelefone(phone);
+      }
     }
-    if (phone) {
-      setTelefone(phone);
-    }
-  }, []);
+  }, [activeLead]);
 
   const chartData = [
     { name: 'Atual', valor: data.valor_fatura, color: '#94a3b8' },
@@ -50,31 +59,46 @@ export function ResultsDashboard({ data, onReset }: ResultsDashboardProps) {
     setSaveMessage('');
 
     try {
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: nome,
-          phone: telefone,
-          kwh: data.consumo_kwh,
-          value: data.valor_fatura,
-          type: data.tipo_ligacao,
-          payback: data.payback_estimado
-        }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        setSaveMessage('Lead salvo com sucesso no CRM!');
-        alert("MGS COMMAND: Lead sincronizado com o Dashboard!");
+      if (activeLead && db) {
+        // Update existing lead in CRM
+        await updateDoc(doc(db, 'leads_solar', activeLead.id), {
+          status: 'Proposta',
+          valor_sistema: data.investimento_estimado,
+          ultimo_contato: new Date().toISOString(),
+          historico: [
+            { data: new Date().toISOString(), acao: "Proposta gerada via Calculadora" }
+          ]
+        });
+        setSaveMessage('Proposta vinculada ao lead com sucesso!');
+        alert("MGS COMMAND: Proposta salva no CRM!");
         gerarPropostaMGS({ ...data, nome });
-        setNome('');
-        setTelefone('');
       } else {
-        setSaveMessage(result.error || 'Erro ao salvar lead.');
+        const response = await fetch('/api/leads', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: nome,
+            phone: telefone,
+            kwh: data.consumo_kwh,
+            value: data.valor_fatura,
+            type: data.tipo_ligacao,
+            payback: data.payback_estimado
+          }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          setSaveMessage('Lead salvo com sucesso no CRM!');
+          alert("MGS COMMAND: Lead sincronizado com o Dashboard!");
+          gerarPropostaMGS({ ...data, nome });
+          setNome('');
+          setTelefone('');
+        } else {
+          setSaveMessage(result.error || 'Erro ao salvar lead.');
+        }
       }
     } catch (error) {
       setSaveMessage('Erro de conexão ao salvar lead.');

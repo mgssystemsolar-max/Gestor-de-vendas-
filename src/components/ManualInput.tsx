@@ -1,20 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from './ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { calculateManual, SolarAnalysisResult } from '../services/geminiService';
 import { Loader2 } from 'lucide-react';
+import { ActiveLead } from '../App';
 
 interface ManualInputProps {
   onAnalysisComplete: (result: SolarAnalysisResult) => void;
+  activeLead?: ActiveLead | null;
 }
 
-export function ManualInput({ onAnalysisComplete }: ManualInputProps) {
+export function ManualInput({ onAnalysisComplete, activeLead }: ManualInputProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     consumo: '',
     tarifa: '',
     tipo: 'Monofásico' as 'Monofásico' | 'Bifásico' | 'Trifásico',
   });
+
+  useEffect(() => {
+    if (activeLead && activeLead.consumo) {
+      setFormData(prev => ({ ...prev, consumo: activeLead.consumo.toString() }));
+    }
+  }, [activeLead]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

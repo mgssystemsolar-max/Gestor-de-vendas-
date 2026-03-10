@@ -8,10 +8,24 @@ import { CRM } from './components/CRM';
 import { WhatsAppIntegrationModal } from './components/WhatsAppIntegrationModal';
 import { MaintenanceDashboard } from './components/MaintenanceDashboard';
 
+export interface ActiveLead {
+  id: string;
+  nome: string;
+  telefone: string;
+  consumo: number;
+}
+
 function App() {
   const [analysisResult, setAnalysisResult] = useState<SolarAnalysisResult | null>(null);
-  const [currentView, setCurrentView] = useState<'calculator' | 'crm' | 'maintenance'>('calculator');
+  const [currentView, setCurrentView] = useState<'calculator' | 'crm' | 'maintenance'>('crm');
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [activeLead, setActiveLead] = useState<ActiveLead | null>(null);
+
+  const handleNavigateToCalculator = (lead: ActiveLead) => {
+    setActiveLead(lead);
+    setCurrentView('calculator');
+    setAnalysisResult(null); // Reset previous analysis
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex flex-col">
@@ -86,7 +100,7 @@ function App() {
 
       <main className={`flex-grow ${currentView !== 'calculator' ? 'bg-[#121212]' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'}`}>
         {currentView === 'crm' ? (
-          <CRM />
+          <CRM onNavigateToCalculator={handleNavigateToCalculator} />
         ) : currentView === 'maintenance' ? (
           <MaintenanceDashboard />
         ) : (
@@ -115,13 +129,17 @@ function App() {
                     </div>
                   </div>
 
-                  <ManualInput onAnalysisComplete={setAnalysisResult} />
+                  <ManualInput onAnalysisComplete={setAnalysisResult} activeLead={activeLead} />
                 </div>
               </div>
             ) : (
               <ResultsDashboard 
                 data={analysisResult} 
-                onReset={() => setAnalysisResult(null)} 
+                onReset={() => {
+                  setAnalysisResult(null);
+                  setActiveLead(null);
+                }} 
+                activeLead={activeLead}
               />
             )}
           </>
