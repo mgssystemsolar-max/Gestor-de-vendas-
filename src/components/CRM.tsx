@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { MessageCircle, User, Filter, BellRing, X, Calculator, CalendarPlus, FileText, ClipboardPaste } from 'lucide-react';
+import { MessageCircle, User, Filter, BellRing, X, Calculator, CalendarPlus, FileText, ClipboardPaste, Loader2 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, onSnapshot, doc, updateDoc, addDoc } from 'firebase/firestore';
 import { WhatsAppModal } from './WhatsAppModal';
 import { ActiveLead } from '../App';
+import { GoogleGenAI, Type } from "@google/genai";
 
 interface Lead {
   id: string;
@@ -23,40 +24,60 @@ interface Lead {
 }
 
 // Helper to extract lead info from text
-const extractLeadInfo = (text: string) => {
-  let nome = '';
-  let telefone = '';
-
-  // Extract phone
-  const phoneRegex = /(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?\d{4,5}[-\s]?\d{4}/g;
-  const phones = text.match(phoneRegex);
-  if (phones && phones.length > 0) {
-    telefone = phones[0].replace(/\D/g, '');
-    if (telefone.length === 10 || telefone.length === 11) {
-      telefone = '55' + telefone;
+const extractLeadInfoWithAI = async (text: string) => {
+  try {
+    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || '' });
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Extract lead information from the following text. If a field is not found, leave it empty. Text:\n\n${text}`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            nome: { type: Type.STRING, description: "The name of the lead/customer." },
+            telefone: { type: Type.STRING, description: "The phone number of the lead, formatted with country code (e.g., 5511999999999). Extract only digits." },
+            consumo: { type: Type.STRING, description: "The energy consumption in kWh or the electricity bill value. Just the number." },
+            notas: { type: Type.STRING, description: "Any other relevant context, city, roof type, or message." }
+          }
+        }
+      }
+    });
+    
+    const jsonStr = response.text?.trim() || "{}";
+    return JSON.parse(jsonStr);
+  } catch (error) {
+    console.error("AI Extraction failed:", error);
+    // Fallback to regex
+    let nome = '';
+    let telefone = '';
+    const phoneRegex = /(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?\d{4,5}[-\s]?\d{4}/g;
+    const phones = text.match(phoneRegex);
+    if (phones && phones.length > 0) {
+      telefone = phones[0].replace(/\D/g, '');
+      if (telefone.length === 10 || telefone.length === 11) {
+        telefone = '55' + telefone;
+      }
     }
-  }
-
-  // Extract name
-  const nameMatch = text.match(/Nome:\s*([^\n]+)/i);
-  if (nameMatch) {
-    nome = nameMatch[1].trim();
-  } else {
-    const waMatch = text.match(/\]\s*([^:]+):/);
-    if (waMatch) {
-      nome = waMatch[1].trim();
+    const nameMatch = text.match(/Nome:\s*([^\n]+)/i);
+    if (nameMatch) {
+      nome = nameMatch[1].trim();
     } else {
-      const lines = text.split('\n');
-      for (const line of lines) {
-        if (/[a-zA-Z]{3,}/.test(line) && !phoneRegex.test(line) && line.length < 50) {
-          nome = line.trim();
-          break;
+      const waMatch = text.match(/\]\s*([^:]+):/);
+      if (waMatch) {
+        nome = waMatch[1].trim();
+      } else {
+        const lines = text.split('\n');
+        for (const line of lines) {
+          if (/[a-zA-Z]{3,}/.test(line) && !phoneRegex.test(line) && line.length < 50) {
+            nome = line.trim();
+            break;
+          }
         }
       }
     }
+    return { nome, telefone, consumo: '', notas: '' };
   }
-
-  return { nome, telefone };
 };
 
 // Mock data
@@ -80,10 +101,11 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
   
   // New Lead Modal State
   const [showNewLeadModal, setShowNewLeadModal] = useState(false);
-  const [newLeadForm, setNewLeadForm] = useState({ nome: '', telefone: '', consumo: '' });
+  const [newLeadForm, setNewLeadForm] = useState({ nome: '', telefone: '', consumo: '', notas: '' });
+  const [isExtracting, setIsExtracting] = useState(false);
 
   useEffect(() => {
-    const handleGlobalPaste = (e: ClipboardEvent) => {
+    const handleGlobalPaste = async (e: ClipboardEvent) => {
       // Don't intercept if user is typing in an input or textarea
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
@@ -91,11 +113,13 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
       
       const pastedText = e.clipboardData?.getData('text');
       if (pastedText) {
-        const { nome, telefone } = extractLeadInfo(pastedText);
-        if (telefone) {
-          setNewLeadForm({ nome, telefone, consumo: '' });
+        setIsExtracting(true);
+        const { nome, telefone, consumo, notas } = await extractLeadInfoWithAI(pastedText);
+        if (telefone || nome) {
+          setNewLeadForm({ nome: nome || '', telefone: telefone || '', consumo: consumo || '', notas: notas || '' });
           setShowNewLeadModal(true);
         }
+        setIsExtracting(false);
       }
     };
 
@@ -196,6 +220,7 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
       nome: newLeadForm.nome,
       telefone: newLeadForm.telefone,
       consumo_kwh: parseInt(newLeadForm.consumo) || 0,
+      notas: newLeadForm.notas || '',
       status: 'Novo',
       origem: 'WhatsApp',
       data_criacao: new Date().toISOString(),
@@ -216,6 +241,7 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
         nome: newLead.nome,
         telefone: newLead.telefone,
         consumo: newLead.consumo_kwh,
+        notas: newLead.notas,
         status: 'Novo',
         source: 'WhatsApp',
         data_criacao: newLead.data_criacao,
@@ -228,7 +254,7 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
     }
 
     setShowNewLeadModal(false);
-    setNewLeadForm({ nome: '', telefone: '', consumo: '' });
+    setNewLeadForm({ nome: '', telefone: '', consumo: '', notas: '' });
   };
 
   const abrirNoWhats = async (telefone: string, id: string) => {
@@ -803,23 +829,29 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
             <div className="px-6 pt-4">
               <button
                 type="button"
+                disabled={isExtracting}
                 onClick={async () => {
                   try {
                     const text = await navigator.clipboard.readText();
-                    const { nome, telefone } = extractLeadInfo(text);
+                    setIsExtracting(true);
+                    const { nome, telefone, consumo, notas } = await extractLeadInfoWithAI(text);
                     setNewLeadForm(prev => ({
                       ...prev,
                       nome: nome || prev.nome,
-                      telefone: telefone || prev.telefone
+                      telefone: telefone || prev.telefone,
+                      consumo: consumo || prev.consumo,
+                      notas: notas || prev.notas
                     }));
                   } catch (err) {
                     console.error('Failed to read clipboard', err);
+                  } finally {
+                    setIsExtracting(false);
                   }
                 }}
-                className="w-full bg-[#333] hover:bg-[#444] text-white text-sm py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-[#444]"
+                className="w-full bg-[#333] hover:bg-[#444] text-white text-sm py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-[#444] disabled:opacity-50"
               >
-                <ClipboardPaste size={16} />
-                Preencher com Área de Transferência
+                {isExtracting ? <Loader2 size={16} className="animate-spin" /> : <ClipboardPaste size={16} />}
+                {isExtracting ? 'Extraindo dados com IA...' : 'Preencher com Área de Transferência'}
               </button>
             </div>
             
@@ -856,6 +888,16 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
                   onChange={e => setNewLeadForm({...newLeadForm, consumo: e.target.value})}
                   className="w-full bg-[#121212] border border-[#333] rounded-xl p-3 text-white focus:outline-none focus:border-[#25D366] text-sm"
                   placeholder="Ex: 450"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-400 text-sm font-medium mb-1 block">Notas / Contexto - Opcional</label>
+                <textarea 
+                  value={newLeadForm.notas}
+                  onChange={e => setNewLeadForm({...newLeadForm, notas: e.target.value})}
+                  className="w-full bg-[#121212] border border-[#333] rounded-xl p-3 text-white focus:outline-none focus:border-[#25D366] text-sm resize-none h-20"
+                  placeholder="Ex: Cliente quer financiar, telhado colonial..."
                 />
               </div>
 
