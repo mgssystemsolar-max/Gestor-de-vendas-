@@ -18,13 +18,16 @@ function App() {
       {/* Header */}
       <header className="bg-gradient-to-br from-[#1a1a1b] to-[#333333] border-b-[3px] border-[#3b82f6] text-center shadow-[0_4px_10px_rgba(0,0,0,0.3)] sticky top-0 z-50">
         <div className="p-5 flex justify-between items-center max-w-7xl mx-auto">
-          <div className="flex-1 text-left">
-            <h1 className="m-0 text-[#3b82f6] font-sans text-[1.4rem] tracking-[2px] uppercase font-black" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
-              MGS SOLAR COMMAND
-            </h1>
-            <p className="mt-[5px] text-white text-[0.75rem] opacity-80 font-light">
-              SISTEMA DE GESTÃO E ENGENHARIA V.4.0
-            </p>
+          <div className="flex-1 text-left flex items-center gap-4">
+            <img src="/logo-icon.svg" alt="MgS Solar Command Logo" className="h-12 w-auto" />
+            <div>
+              <h1 className="m-0 text-[#3b82f6] font-sans text-[1.4rem] tracking-[2px] uppercase font-black" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
+                MGS SOLAR COMMAND
+              </h1>
+              <p className="mt-[5px] text-white text-[0.75rem] opacity-80 font-light">
+                SISTEMA DE GESTÃO E ENGENHARIA V.4.0
+              </p>
+            </div>
           </div>
           
           <button 

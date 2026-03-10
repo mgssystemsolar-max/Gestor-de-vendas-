@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { MessageCircle, User, Filter } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { MessageCircle, User, Filter, BellRing, X } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 
@@ -32,13 +32,52 @@ const initialLeads: Lead[] = [
 export function CRM() {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
+  const isInitialLoad = useRef(true);
+  const [newLeadAlert, setNewLeadAlert] = useState<{nome: string, source: string} | null>(null);
   
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
+  }, []);
+
   useEffect(() => {
     if (!db) return;
     
     const unsubscribe = onSnapshot(collection(db, 'leads_solar'), (snapshot) => {
       if (!snapshot.empty) {
         setIsFirebaseConnected(true);
+        
+        if (!isInitialLoad.current) {
+          const addedDocs = snapshot.docChanges().filter(change => change.type === 'added');
+          if (addedDocs.length > 0) {
+            const newLeadData = addedDocs[0].doc.data();
+            const nome = newLeadData.nome || 'Novo Lead';
+            const source = newLeadData.origem || newLeadData.source || 'Website';
+            
+            setNewLeadAlert({ nome, source });
+            
+            // Push Notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('Novo Lead Recebido!', {
+                body: `${nome} acabou de chegar via ${source}.`,
+                icon: '/logo-icon.svg'
+              });
+            }
+            
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+              setNewLeadAlert(null);
+            }, 5000);
+            
+            // Play sound
+            try {
+              const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+              audio.play().catch(e => console.log('Audio play prevented by browser', e));
+            } catch (e) {}
+          }
+        }
+        
         const firebaseLeads: Lead[] = snapshot.docs.map(doc => {
           const data = doc.data();
           return {
@@ -59,6 +98,10 @@ export function CRM() {
           } as Lead;
         });
         setLeads(firebaseLeads);
+        
+        if (isInitialLoad.current) {
+          isInitialLoad.current = false;
+        }
       }
     }, (error) => {
       console.error("Erro ao buscar leads do Firebase:", error);
@@ -259,8 +302,31 @@ export function CRM() {
     : "0.0";
 
   return (
-    <div className="flex flex-col bg-[#121212] min-h-[calc(100vh-64px)]">
+    <div className="flex flex-col bg-[#121212] min-h-[calc(100vh-64px)] relative">
       
+      {/* Toast Notification */}
+      {newLeadAlert && (
+        <div className="absolute top-4 right-4 z-50 animate-in slide-in-from-top-4 fade-in duration-300">
+          <div className="bg-[#1e1e1e] border-2 border-[#3b82f6] rounded-lg shadow-[0_0_20px_rgba(59,130,246,0.5)] p-4 flex items-start gap-4 max-w-sm">
+            <div className="bg-[#3b82f6]/20 p-2 rounded-full text-[#3b82f6] animate-pulse">
+              <BellRing size={24} />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-white font-bold text-lg m-0">Novo Lead Recebido!</h4>
+              <p className="text-gray-300 text-sm mt-1">
+                <strong className="text-[#3b82f6]">{newLeadAlert.nome}</strong> acabou de chegar via {newLeadAlert.source}.
+              </p>
+            </div>
+            <button 
+              onClick={() => setNewLeadAlert(null)}
+              className="text-gray-500 hover:text-white transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Dashboard Summary */}
       <div className="flex flex-wrap justify-around p-5 bg-[#1c1c1c] border-b-2 border-[#3b82f6] shadow-md">
         <div className="text-center px-4 py-2">

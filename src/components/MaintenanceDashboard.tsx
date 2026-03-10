@@ -23,6 +23,9 @@ const mockMaintenanceLeads: MaintenanceLead[] = [
 const StatusManutencao: React.FC<{ lead: MaintenanceLead }> = ({ lead }) => {
   // Simulação de lógica: Se não houver log há 24h, fica vermelho
   const isOffline = lead.lastUpdate < Date.now() - 86400000; 
+  
+  // Calcula horas offline
+  const horasOffline = isOffline ? Math.floor((Date.now() - lead.lastUpdate) / 3600000) : 0;
 
   const abrirMonitoramento = (link: string) => {
     window.open(link, '_blank');
@@ -44,47 +47,60 @@ const StatusManutencao: React.FC<{ lead: MaintenanceLead }> = ({ lead }) => {
   };
 
   return (
-    <div style={{ padding: '20px', borderRadius: '12px', background: isOffline ? '#4a0e0e' : '#1a2e1a', border: `1px solid ${isOffline ? '#ff4d4d' : '#4dff88'}`, boxShadow: '0 4px 6px rgba(0,0,0,0.3)' }}>
-      <div className="flex justify-between items-start mb-3">
-        <h4 style={{ color: '#fff', margin: '0', fontSize: '1.2rem', fontWeight: 'bold' }}>{lead.nome}</h4>
-        {isOffline ? (
-          <span className="flex items-center gap-1 text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded border border-red-500/30 font-bold tracking-wide uppercase">
-            <AlertTriangle size={14} /> Offline
+    <div className={`relative p-5 rounded-xl shadow-lg transition-all duration-300 flex flex-col h-full ${isOffline ? 'bg-gradient-to-br from-[#2a0808] to-[#1a0505] border-2 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.15)]' : 'bg-gradient-to-br from-[#1a2e1a] to-[#0d1a0d] border border-[#4dff88]/30'}`}>
+      
+      {isOffline && (
+        <div className="absolute -top-3 -right-3 z-10">
+          <span className="flex items-center gap-1 bg-red-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-[0_0_10px_rgba(220,38,38,0.8)] animate-pulse uppercase tracking-wider border-2 border-[#121212]">
+            <AlertTriangle size={12} strokeWidth={3} /> Offline {horasOffline}h
           </span>
-        ) : (
-          <span className="flex items-center gap-1 text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded border border-green-500/30 font-bold tracking-wide uppercase">
-            <Activity size={14} /> Online
+        </div>
+      )}
+
+      <div className="flex justify-between items-start mb-4">
+        <h4 className="text-white m-0 text-lg font-bold truncate pr-4">{lead.nome}</h4>
+        {!isOffline && (
+          <span className="flex items-center gap-1 text-[10px] bg-green-500/20 text-green-400 px-2 py-1 rounded border border-green-500/30 font-bold tracking-wide uppercase shrink-0">
+            <Activity size={12} /> Online
           </span>
         )}
       </div>
       
-      <div className="space-y-1 mb-4">
-        <p style={{ fontSize: '14px', color: '#ccc', margin: '0' }}>Inversor: <span className="text-white font-medium">{lead.modeloInversor}</span></p>
-        <p style={{ fontSize: '14px', color: '#ccc', margin: '0' }}>Endereço: <span className="text-white font-medium">{lead.endereco}</span></p>
-        <p style={{ fontSize: '12px', color: '#888', margin: '0', marginTop: '4px' }}>
-          Última atualização: {new Date(lead.lastUpdate).toLocaleString('pt-BR')}
-        </p>
+      <div className="space-y-3 mb-6 flex-grow">
+        <div className="flex flex-col">
+          <span className="text-[11px] text-gray-500 uppercase tracking-wider font-semibold">Inversor</span>
+          <span className="text-gray-200 font-medium text-sm">{lead.modeloInversor}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[11px] text-gray-500 uppercase tracking-wider font-semibold">Endereço</span>
+          <span className="text-gray-200 font-medium text-sm line-clamp-2" title={lead.endereco}>{lead.endereco}</span>
+        </div>
+        <div className="flex flex-col pt-1">
+          <span className="text-[11px] text-gray-500 uppercase tracking-wider font-semibold">Última Comunicação</span>
+          <span className={`${isOffline ? 'text-red-400 font-semibold' : 'text-gray-400'} text-xs`}>
+            {new Date(lead.lastUpdate).toLocaleString('pt-BR')}
+          </span>
+        </div>
       </div>
       
-      <div style={{ display: 'flex', gap: '10px', marginTop: '15px', flexWrap: 'wrap' }}>
-        <button 
-          onClick={() => abrirMonitoramento(lead.linkPortal)} 
-          className="flex-1 min-w-[120px] flex items-center justify-center gap-2 text-sm font-bold transition-transform hover:scale-105 active:scale-95"
-          style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '10px', borderRadius: '8px', cursor: 'pointer' }}
-        >
-          👁️ Ver Gráfico
-        </button>
-        <button 
-          onClick={() => enviarTecnico(lead.telefone)} 
-          className="flex-1 min-w-[120px] flex items-center justify-center gap-2 text-sm font-bold transition-transform hover:scale-105 active:scale-95"
-          style={{ background: '#25D366', color: '#fff', border: 'none', padding: '10px', borderRadius: '8px', cursor: 'pointer' }}
-        >
-          🛠️ Falar c/ Cliente
-        </button>
+      <div className="flex flex-col gap-2 mt-auto">
+        <div className="flex gap-2">
+          <button 
+            onClick={() => abrirMonitoramento(lead.linkPortal)} 
+            className="flex-1 flex items-center justify-center gap-2 text-xs font-bold transition-all hover:brightness-110 active:scale-95 bg-[#3b82f6] text-white py-2.5 px-3 rounded-lg shadow-md"
+          >
+            👁️ Portal
+          </button>
+          <button 
+            onClick={() => enviarTecnico(lead.telefone)} 
+            className="flex-1 flex items-center justify-center gap-2 text-xs font-bold transition-all hover:brightness-110 active:scale-95 bg-[#25D366] text-white py-2.5 px-3 rounded-lg shadow-md"
+          >
+            💬 Cliente
+          </button>
+        </div>
         <button 
           onClick={() => enviarRotaAoTecnico(lead.endereco, 'Equipe Técnica')} 
-          className="w-full flex items-center justify-center gap-2 text-sm font-bold transition-transform hover:scale-105 active:scale-95 mt-1"
-          style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '10px', borderRadius: '8px', cursor: 'pointer' }}
+          className={`w-full flex items-center justify-center gap-2 text-xs font-bold transition-all hover:brightness-110 active:scale-95 text-white py-2.5 px-3 rounded-lg shadow-md ${isOffline ? 'bg-red-600 hover:bg-red-500' : 'bg-slate-700 hover:bg-slate-600'}`}
         >
           📍 Enviar Rota ao Técnico
         </button>
@@ -125,6 +141,14 @@ export function MaintenanceDashboard() {
   const offlineCount = leads.filter(l => l.lastUpdate < Date.now() - 86400000).length;
   const onlineCount = leads.length - offlineCount;
 
+  const sortedLeads = [...leads].sort((a, b) => {
+    const aOffline = a.lastUpdate < Date.now() - 86400000;
+    const bOffline = b.lastUpdate < Date.now() - 86400000;
+    if (aOffline && !bOffline) return -1;
+    if (!aOffline && bOffline) return 1;
+    return a.lastUpdate - b.lastUpdate; // Sort by oldest update first if both are same status
+  });
+
   return (
     <div className="flex flex-col bg-[#121212] min-h-[calc(100vh-64px)] p-6">
       <div className="mb-8 max-w-7xl mx-auto w-full">
@@ -162,7 +186,7 @@ export function MaintenanceDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto w-full">
-        {leads.map(lead => (
+        {sortedLeads.map(lead => (
           <StatusManutencao key={lead.id} lead={lead} />
         ))}
       </div>
