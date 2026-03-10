@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { MessageCircle, User, Filter, BellRing, X, Calculator, CalendarPlus, FileText, ClipboardPaste, Loader2 } from 'lucide-react';
+import { MessageCircle, User, Filter, BellRing, X, Calculator, CalendarPlus, FileText, ClipboardPaste, Loader2, Activity, Edit3, CheckCircle2 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, onSnapshot, doc, updateDoc, addDoc } from 'firebase/firestore';
 import { WhatsAppModal } from './WhatsAppModal';
@@ -340,7 +340,7 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
     }
   };
 
-  const enviarOnboardingMGS = (telefone: string, nomeCliente: string) => {
+  const enviarOnboardingMGS = async (id: string, telefone: string, nomeCliente: string) => {
     const textoBoasVindas = `*PARABÉNS! VOCÊ AGORA É MGS SOLAR!* ☀️\n\n` +
         `Olá ${nomeCliente}, ficamos muito felizes em iniciar sua jornada rumo à liberdade energética!\n\n` +
         `Para darmos entrada no processo de *Homologação junto à Concessionária*, preciso que me envie fotos dos seguintes documentos:\n` +
@@ -355,6 +355,26 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
       name: nomeCliente
     });
     setWaModalOpen(true);
+
+    const lead = leads.find(l => l.id === id);
+    if (!lead) return;
+
+    const newHistorico = lead.historico ? [...lead.historico] : [];
+    newHistorico.push({ data: new Date().toISOString(), acao: "Onboarding enviado via WhatsApp" });
+
+    if (isFirebaseConnected && db) {
+      try {
+        await updateDoc(doc(db, 'leads_solar', id), {
+          historico: newHistorico
+        });
+      } catch (error) {
+        console.error("Erro ao registrar onboarding:", error);
+      }
+    } else {
+      setLeads(prev => prev.map(l => 
+        l.id === id ? { ...l, historico: newHistorico } : l
+      ));
+    }
   };
 
   const handleStatusChange = async (id: string, newStatus: Lead['status']) => {
@@ -384,18 +404,48 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
     }
   };
 
+  const getHistoryIcon = (acao: string) => {
+    const lowerAcao = acao.toLowerCase();
+    if (lowerAcao.includes('contato') || lowerAcao.includes('whatsapp') || lowerAcao.includes('mensagem')) {
+      return <MessageCircle size={12} className="text-blue-400" />;
+    }
+    if (lowerAcao.includes('proposta') || lowerAcao.includes('onboarding')) {
+      return <FileText size={12} className="text-emerald-400" />;
+    }
+    if (lowerAcao.includes('nota')) {
+      return <Edit3 size={12} className="text-amber-400" />;
+    }
+    if (lowerAcao.includes('movido') || lowerAcao.includes('status')) {
+      return <Activity size={12} className="text-purple-400" />;
+    }
+    if (lowerAcao.includes('criado') || lowerAcao.includes('captado')) {
+      return <User size={12} className="text-gray-400" />;
+    }
+    return <CheckCircle2 size={12} className="text-gray-400" />;
+  };
+
   const handleSaveNote = async (id: string, nota: string) => {
+    const lead = leads.find(l => l.id === id);
+    if (!lead) return;
+
+    // Only add to history if the note actually changed
+    if (lead.notas === nota) return;
+
+    const newHistorico = lead.historico ? [...lead.historico] : [];
+    newHistorico.push({ data: new Date().toISOString(), acao: "Nota atualizada" });
+
     if (isFirebaseConnected && db) {
       try {
         await updateDoc(doc(db, 'leads_solar', id), {
-          notas: nota
+          notas: nota,
+          historico: newHistorico
         });
       } catch (error) {
         console.error("Erro ao salvar nota:", error);
       }
     } else {
-      setLeads(prev => prev.map(lead => 
-        lead.id === id ? { ...lead, notas: nota } : lead
+      setLeads(prev => prev.map(l => 
+        l.id === id ? { ...l, notas: nota, historico: newHistorico } : l
       ));
     }
   };
@@ -807,17 +857,22 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
                           </div>
 
                           <div>
-                            <label className="text-xs text-gray-500 mb-2 block">Histórico de Atividades</label>
-                            <div className="space-y-2 max-h-[120px] overflow-y-auto pr-1 custom-scrollbar">
+                            <label className="text-xs text-gray-500 mb-3 block uppercase tracking-wider font-semibold">Histórico de Atividades</label>
+                            <div className="relative pl-3 space-y-4 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar border-l border-[#333] ml-2">
                               {lead.historico && lead.historico.length > 0 ? (
                                 lead.historico.slice().reverse().map((item, index) => (
-                                  <div key={index} className="flex flex-col bg-[#1e1e1e] p-2 rounded border border-[#333]">
-                                    <span className="text-[10px] text-gray-500">{formatDate(item.data)}</span>
-                                    <span className="text-xs text-gray-300">{item.acao}</span>
+                                  <div key={index} className="relative">
+                                    <div className="absolute -left-[19px] top-1 bg-[#1e1e1e] p-0.5 rounded-full border border-[#333]">
+                                      {getHistoryIcon(item.acao)}
+                                    </div>
+                                    <div className="flex flex-col bg-[#1e1e1e] p-2.5 rounded-lg border border-[#333] shadow-sm ml-2">
+                                      <span className="text-[10px] text-gray-500 font-mono mb-1">{formatDate(item.data)}</span>
+                                      <span className="text-xs text-gray-200">{item.acao}</span>
+                                    </div>
                                   </div>
                                 ))
                               ) : (
-                                <p className="text-xs text-gray-500 italic">Nenhum histórico registrado.</p>
+                                <p className="text-xs text-gray-500 italic ml-2">Nenhum histórico registrado.</p>
                               )}
                             </div>
                           </div>
@@ -852,7 +907,7 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
 
                         {lead.status === 'Fechado' && (
                           <button 
-                            onClick={() => enviarOnboardingMGS(lead.telefone, lead.nome)} 
+                            onClick={() => enviarOnboardingMGS(lead.id, lead.telefone, lead.nome)} 
                             className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors text-sm"
                           >
                             <MessageCircle size={16} />
