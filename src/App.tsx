@@ -3,6 +3,7 @@ import { Zap, LayoutDashboard, MessageCircle, Wrench, FileText } from 'lucide-re
 import { CRM } from './components/CRM';
 import { MaintenanceDashboard } from './components/MaintenanceDashboard';
 import { MGSSolarPro } from './components/MGSSolarPro';
+import { WhatsAppInbox } from './components/WhatsAppInbox';
 
 export interface ActiveLead {
   id: string;
@@ -12,7 +13,7 @@ export interface ActiveLead {
 }
 
 function App() {
-  const [currentView, setCurrentView] = useState<'crm' | 'maintenance' | 'pro'>('crm');
+  const [currentView, setCurrentView] = useState<'crm' | 'maintenance' | 'pro' | 'whatsapp'>('crm');
   const [activeLead, setActiveLead] = useState<ActiveLead | null>(null);
 
   const handleNavigateToPro = (lead: ActiveLead) => {
@@ -52,6 +53,17 @@ function App() {
             CRM / Leads
           </button>
           <button
+            onClick={() => setCurrentView('whatsapp')}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+              currentView === 'whatsapp'
+                ? 'bg-[#25D366] text-white shadow-[0_0_10px_rgba(37,211,102,0.5)]'
+                : 'text-gray-400 hover:text-white hover:bg-[#333]'
+            }`}
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
+            WhatsApp
+          </button>
+          <button
             onClick={() => setCurrentView('maintenance')}
             className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
               currentView === 'maintenance'
@@ -76,9 +88,11 @@ function App() {
         </div>
       </header>
 
-      <main className={`flex-grow ${currentView !== 'pro' ? 'bg-[#121212]' : 'bg-white'}`}>
+      <main className={`flex-grow ${currentView !== 'pro' && currentView !== 'whatsapp' ? 'bg-[#121212]' : currentView === 'whatsapp' ? 'bg-[#111b21]' : 'bg-white'}`}>
         {currentView === 'crm' ? (
           <CRM onNavigateToPro={handleNavigateToPro} />
+        ) : currentView === 'whatsapp' ? (
+          <WhatsAppInbox />
         ) : currentView === 'maintenance' ? (
           <MaintenanceDashboard />
         ) : currentView === 'pro' ? (

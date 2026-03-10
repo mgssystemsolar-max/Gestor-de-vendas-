@@ -5,6 +5,7 @@ import { collection, onSnapshot, doc, updateDoc, addDoc } from 'firebase/firesto
 import { WhatsAppModal } from './WhatsAppModal';
 import { ActiveLead } from '../App';
 import { GoogleGenAI, Type } from "@google/genai";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface Lead {
   id: string;
@@ -18,6 +19,9 @@ interface Lead {
   contacted?: boolean;
   valor_sistema: number;
   notas?: string;
+  email?: string;
+  cidade?: string;
+  tipo_telhado?: string;
   historico?: { data: string; acao: string }[];
   prioridade?: "NORMAL" | "URGENTE";
   ultima_mensagem?: string;
@@ -27,7 +31,8 @@ interface Lead {
 const extractLeadInfoWithAI = async (text: string) => {
   try {
     const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || '' });
-    const response = await ai.models.generateContent({
+    
+    const fetchPromise = ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Extract lead information from the following text. If a field is not found, leave it empty. Text:\n\n${text}`,
       config: {
@@ -38,19 +43,37 @@ const extractLeadInfoWithAI = async (text: string) => {
             nome: { type: Type.STRING, description: "The name of the lead/customer." },
             telefone: { type: Type.STRING, description: "The phone number of the lead, formatted with country code (e.g., 5511999999999). Extract only digits." },
             consumo: { type: Type.STRING, description: "The energy consumption in kWh or the electricity bill value. Just the number." },
-            notas: { type: Type.STRING, description: "Any other relevant context, city, roof type, or message." }
+            email: { type: Type.STRING, description: "The email address of the lead." },
+            cidade: { type: Type.STRING, description: "The city or location of the lead." },
+            tipo_telhado: { type: Type.STRING, description: "The type of roof (e.g., colonial, zinco, laje, fibrocimento)." },
+            notas: { type: Type.STRING, description: "Any other relevant context, message, or details not covered by other fields." }
           }
         }
       }
     });
+
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("AI Extraction Timeout")), 10000));
+    
+    const response = await Promise.race([fetchPromise, timeoutPromise]) as any;
     
     const jsonStr = response.text?.trim() || "{}";
-    return JSON.parse(jsonStr);
+    const parsed = JSON.parse(jsonStr);
+    
+    return {
+      nome: parsed.nome || '',
+      telefone: parsed.telefone || '',
+      consumo: parsed.consumo || '',
+      email: parsed.email || '',
+      cidade: parsed.cidade || '',
+      tipo_telhado: parsed.tipo_telhado || '',
+      notas: parsed.notas || ''
+    };
   } catch (error) {
     console.error("AI Extraction failed:", error);
     // Fallback to regex
     let nome = '';
     let telefone = '';
+    let email = '';
     const phoneRegex = /(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?\d{4,5}[-\s]?\d{4}/g;
     const phones = text.match(phoneRegex);
     if (phones && phones.length > 0) {
@@ -59,6 +82,13 @@ const extractLeadInfoWithAI = async (text: string) => {
         telefone = '55' + telefone;
       }
     }
+    
+    const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi;
+    const emails = text.match(emailRegex);
+    if (emails && emails.length > 0) {
+      email = emails[0];
+    }
+
     const nameMatch = text.match(/Nome:\s*([^\n]+)/i);
     if (nameMatch) {
       nome = nameMatch[1].trim();
@@ -76,7 +106,7 @@ const extractLeadInfoWithAI = async (text: string) => {
         }
       }
     }
-    return { nome, telefone, consumo: '', notas: '' };
+    return { nome, telefone, consumo: '', email, cidade: '', tipo_telhado: '', notas: '' };
   }
 };
 
@@ -101,7 +131,7 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
   
   // New Lead Modal State
   const [showNewLeadModal, setShowNewLeadModal] = useState(false);
-  const [newLeadForm, setNewLeadForm] = useState({ nome: '', telefone: '', consumo: '', notas: '' });
+  const [newLeadForm, setNewLeadForm] = useState({ nome: '', telefone: '', consumo: '', notas: '', email: '', cidade: '', tipo_telhado: '' });
   const [isExtracting, setIsExtracting] = useState(false);
 
   useEffect(() => {
@@ -114,9 +144,17 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
       const pastedText = e.clipboardData?.getData('text');
       if (pastedText) {
         setIsExtracting(true);
-        const { nome, telefone, consumo, notas } = await extractLeadInfoWithAI(pastedText);
+        const { nome, telefone, consumo, notas, email, cidade, tipo_telhado } = await extractLeadInfoWithAI(pastedText);
         if (telefone || nome) {
-          setNewLeadForm({ nome: nome || '', telefone: telefone || '', consumo: consumo || '', notas: notas || '' });
+          setNewLeadForm({ 
+            nome: nome || '', 
+            telefone: telefone || '', 
+            consumo: consumo || '', 
+            notas: notas || '',
+            email: email || '',
+            cidade: cidade || '',
+            tipo_telhado: tipo_telhado || ''
+          });
           setShowNewLeadModal(true);
         }
         setIsExtracting(false);
@@ -212,6 +250,13 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
 
   const columns = ["Novo", "Agendado", "Proposta", "Vistoria", "Fechado"] as const;
 
+  const chartData = useMemo(() => {
+    return columns.map(status => ({
+      name: status,
+      quantidade: leads.filter(l => l.status === status).length
+    }));
+  }, [leads]);
+
   const handleCreateLead = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLeadForm.nome || !newLeadForm.telefone) return;
@@ -221,6 +266,9 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
       telefone: newLeadForm.telefone,
       consumo_kwh: parseInt(newLeadForm.consumo) || 0,
       notas: newLeadForm.notas || '',
+      email: newLeadForm.email || '',
+      cidade: newLeadForm.cidade || '',
+      tipo_telhado: newLeadForm.tipo_telhado || '',
       status: 'Novo',
       origem: 'WhatsApp',
       data_criacao: new Date().toISOString(),
@@ -242,6 +290,9 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
         telefone: newLead.telefone,
         consumo: newLead.consumo_kwh,
         notas: newLead.notas,
+        email: newLead.email,
+        cidade: newLead.cidade,
+        tipo_telhado: newLead.tipo_telhado,
         status: 'Novo',
         source: 'WhatsApp',
         data_criacao: newLead.data_criacao,
@@ -254,7 +305,7 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
     }
 
     setShowNewLeadModal(false);
-    setNewLeadForm({ nome: '', telefone: '', consumo: '', notas: '' });
+    setNewLeadForm({ nome: '', telefone: '', consumo: '', notas: '', email: '', cidade: '', tipo_telhado: '' });
   };
 
   const abrirNoWhats = async (telefone: string, id: string) => {
@@ -588,6 +639,30 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
         </div>
       </div>
 
+      {/* Chart Section */}
+      <div className="px-5 pb-5">
+        <div className="bg-[#1e1e1e] rounded-xl border border-[#333] p-5">
+          <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+            Distribuição de Leads
+          </h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                <XAxis dataKey="name" stroke="#888" tick={{ fill: '#888', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis stroke="#888" tick={{ fill: '#888', fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip 
+                  cursor={{ fill: '#2a2a2a' }}
+                  contentStyle={{ backgroundColor: '#1e1e1e', borderColor: '#333', color: '#fff', borderRadius: '8px' }}
+                  itemStyle={{ color: '#3b82f6' }}
+                />
+                <Bar dataKey="quantidade" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
       {/* Kanban Board */}
       <div className="flex flex-col md:flex-row gap-5 px-5 pb-5 flex-1 overflow-x-auto">
         {columns.map(status => {
@@ -834,13 +909,16 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
                   try {
                     const text = await navigator.clipboard.readText();
                     setIsExtracting(true);
-                    const { nome, telefone, consumo, notas } = await extractLeadInfoWithAI(text);
+                    const { nome, telefone, consumo, notas, email, cidade, tipo_telhado } = await extractLeadInfoWithAI(text);
                     setNewLeadForm(prev => ({
                       ...prev,
                       nome: nome || prev.nome,
                       telefone: telefone || prev.telefone,
                       consumo: consumo || prev.consumo,
-                      notas: notas || prev.notas
+                      notas: notas || prev.notas,
+                      email: email || prev.email,
+                      cidade: cidade || prev.cidade,
+                      tipo_telhado: tipo_telhado || prev.tipo_telhado
                     }));
                   } catch (err) {
                     console.error('Failed to read clipboard', err);
@@ -888,6 +966,40 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
                   onChange={e => setNewLeadForm({...newLeadForm, consumo: e.target.value})}
                   className="w-full bg-[#121212] border border-[#333] rounded-xl p-3 text-white focus:outline-none focus:border-[#25D366] text-sm"
                   placeholder="Ex: 450"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-400 text-sm font-medium mb-1 block">E-mail - Opcional</label>
+                  <input 
+                    type="email" 
+                    value={newLeadForm.email}
+                    onChange={e => setNewLeadForm({...newLeadForm, email: e.target.value})}
+                    className="w-full bg-[#121212] border border-[#333] rounded-xl p-3 text-white focus:outline-none focus:border-[#25D366] text-sm"
+                    placeholder="Ex: joao@email.com"
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm font-medium mb-1 block">Cidade - Opcional</label>
+                  <input 
+                    type="text" 
+                    value={newLeadForm.cidade}
+                    onChange={e => setNewLeadForm({...newLeadForm, cidade: e.target.value})}
+                    className="w-full bg-[#121212] border border-[#333] rounded-xl p-3 text-white focus:outline-none focus:border-[#25D366] text-sm"
+                    placeholder="Ex: São Paulo"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-gray-400 text-sm font-medium mb-1 block">Tipo de Telhado - Opcional</label>
+                <input 
+                  type="text" 
+                  value={newLeadForm.tipo_telhado}
+                  onChange={e => setNewLeadForm({...newLeadForm, tipo_telhado: e.target.value})}
+                  className="w-full bg-[#121212] border border-[#333] rounded-xl p-3 text-white focus:outline-none focus:border-[#25D366] text-sm"
+                  placeholder="Ex: Colonial, Zinco, Laje..."
                 />
               </div>
 
