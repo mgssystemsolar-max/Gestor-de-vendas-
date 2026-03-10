@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { MessageCircle, User, Filter, BellRing, X, Calculator, CalendarPlus } from 'lucide-react';
+import { MessageCircle, User, Filter, BellRing, X, Calculator, CalendarPlus, FileText } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, onSnapshot, doc, updateDoc, addDoc } from 'firebase/firestore';
 import { WhatsAppModal } from './WhatsAppModal';
@@ -31,7 +31,7 @@ const initialLeads: Lead[] = [
   { id: '5', nome: 'Pedro Rocha', consumo: 600, telefone: '5511955555555', status: 'Novo', source: 'Website', data_criacao: new Date().toISOString(), ultimo_contato: new Date().toISOString(), valor_sistema: 18000, historico: [{ data: new Date().toISOString(), acao: "Lead criado via Website" }] },
 ];
 
-export function CRM({ onNavigateToCalculator }: { onNavigateToCalculator?: (lead: ActiveLead) => void }) {
+export function CRM({ onNavigateToCalculator, onNavigateToPro }: { onNavigateToCalculator?: (lead: ActiveLead) => void, onNavigateToPro?: (lead: ActiveLead) => void }) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
   const isInitialLoad = useRef(true);
@@ -678,18 +678,32 @@ export function CRM({ onNavigateToCalculator }: { onNavigateToCalculator?: (lead
                         )}
                         
                         {(lead.status === 'Novo' || lead.status === 'Vistoria' || lead.status === 'Agendado') && (
-                          <button 
-                            onClick={() => onNavigateToCalculator?.({
-                              id: lead.id,
-                              nome: lead.nome,
-                              telefone: lead.telefone,
-                              consumo: lead.consumo
-                            })}
-                            className="w-full bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-bold py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors text-sm"
-                          >
-                            <Calculator size={16} />
-                            Gerar Proposta (Calculadora)
-                          </button>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button 
+                              onClick={() => onNavigateToCalculator?.({
+                                id: lead.id,
+                                nome: lead.nome,
+                                telefone: lead.telefone,
+                                consumo: lead.consumo
+                              })}
+                              className="w-full bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-bold py-2 px-2 rounded flex flex-col items-center justify-center gap-1 transition-colors text-xs text-center"
+                            >
+                              <Calculator size={14} />
+                              Calculadora
+                            </button>
+                            <button 
+                              onClick={() => onNavigateToPro?.({
+                                id: lead.id,
+                                nome: lead.nome,
+                                telefone: lead.telefone,
+                                consumo: lead.consumo
+                              })}
+                              className="w-full bg-[#10b981] hover:bg-[#059669] text-white font-bold py-2 px-2 rounded flex flex-col items-center justify-center gap-1 transition-colors text-xs text-center shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+                            >
+                              <FileText size={14} />
+                              MGS PRO
+                            </button>
+                          </div>
                         )}
 
                         {lead.status === 'Fechado' && (

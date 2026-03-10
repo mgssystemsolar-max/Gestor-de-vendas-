@@ -3,10 +3,11 @@ import { UploadSection } from './components/UploadSection';
 import { ResultsDashboard } from './components/ResultsDashboard';
 import { ManualInput } from './components/ManualInput';
 import { SolarAnalysisResult } from './services/geminiService';
-import { Zap, LayoutDashboard, Calculator, MessageCircle, Wrench } from 'lucide-react';
+import { Zap, LayoutDashboard, Calculator, MessageCircle, Wrench, FileText } from 'lucide-react';
 import { CRM } from './components/CRM';
 import { WhatsAppIntegrationModal } from './components/WhatsAppIntegrationModal';
 import { MaintenanceDashboard } from './components/MaintenanceDashboard';
+import { MGSSolarPro } from './components/MGSSolarPro';
 
 export interface ActiveLead {
   id: string;
@@ -17,7 +18,7 @@ export interface ActiveLead {
 
 function App() {
   const [analysisResult, setAnalysisResult] = useState<SolarAnalysisResult | null>(null);
-  const [currentView, setCurrentView] = useState<'calculator' | 'crm' | 'maintenance'>('crm');
+  const [currentView, setCurrentView] = useState<'calculator' | 'crm' | 'maintenance' | 'pro'>('crm');
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [activeLead, setActiveLead] = useState<ActiveLead | null>(null);
 
@@ -25,6 +26,11 @@ function App() {
     setActiveLead(lead);
     setCurrentView('calculator');
     setAnalysisResult(null); // Reset previous analysis
+  };
+
+  const handleNavigateToPro = (lead: ActiveLead) => {
+    setActiveLead(lead);
+    setCurrentView('pro');
   };
 
   return (
@@ -88,6 +94,17 @@ function App() {
             <Wrench className="w-4 h-4 mr-2" />
             O&M (Manutenção)
           </button>
+          <button
+            onClick={() => setCurrentView('pro')}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+              currentView === 'pro'
+                ? 'bg-[#8b5cf6] text-white shadow-[0_0_10px_rgba(139,92,246,0.5)]'
+                : 'text-gray-400 hover:text-white hover:bg-[#333]'
+            }`}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            MGS Solar PRO
+          </button>
           <button 
             onClick={() => setShowWhatsAppModal(true)}
             className="sm:hidden flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors text-[#25D366] hover:bg-[#333] whitespace-nowrap"
@@ -98,11 +115,13 @@ function App() {
         </div>
       </header>
 
-      <main className={`flex-grow ${currentView !== 'calculator' ? 'bg-[#121212]' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'}`}>
+      <main className={`flex-grow ${currentView !== 'calculator' && currentView !== 'pro' ? 'bg-[#121212]' : currentView === 'pro' ? 'bg-white' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'}`}>
         {currentView === 'crm' ? (
-          <CRM onNavigateToCalculator={handleNavigateToCalculator} />
+          <CRM onNavigateToCalculator={handleNavigateToCalculator} onNavigateToPro={handleNavigateToPro} />
         ) : currentView === 'maintenance' ? (
           <MaintenanceDashboard />
+        ) : currentView === 'pro' ? (
+          <MGSSolarPro />
         ) : (
           <>
             {!analysisResult ? (
