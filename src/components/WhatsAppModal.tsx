@@ -23,7 +23,8 @@ export function WhatsAppModal({ isOpen, onClose, phone, defaultMessage = '', con
   if (!isOpen) return null;
 
   // Limpa o número de telefone (remove tudo que não for número)
-  const cleanPhone = phone.replace(/\D/g, '');
+  const phoneStr = String(phone || '');
+  const cleanPhone = phoneStr.replace(/\D/g, '');
   // Garante que tem o código do país (55 para Brasil)
   const finalPhone = cleanPhone.startsWith('55') ? cleanPhone : (cleanPhone.length >= 10 ? `55${cleanPhone}` : cleanPhone);
 
@@ -37,21 +38,6 @@ export function WhatsAppModal({ isOpen, onClose, phone, defaultMessage = '', con
     } catch (err) {
       console.error('Failed to copy!', err);
     }
-  };
-
-  const openWeb = () => {
-    window.open(`https://web.whatsapp.com/send?phone=${finalPhone}&text=${encodedMessage}`, '_blank');
-    onClose();
-  };
-
-  const openApp = () => {
-    window.open(`whatsapp://send?phone=${finalPhone}&text=${encodedMessage}`, '_blank');
-    onClose();
-  };
-
-  const openApi = () => {
-    window.open(`https://api.whatsapp.com/send?phone=${finalPhone}&text=${encodedMessage}`, '_blank');
-    onClose();
   };
 
   return (
@@ -92,27 +78,36 @@ export function WhatsAppModal({ isOpen, onClose, phone, defaultMessage = '', con
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-            <button
-              onClick={openWeb}
+            <a
+              href={`https://web.whatsapp.com/send?phone=${finalPhone}&text=${encodedMessage}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onClose}
               className="flex items-center justify-center gap-2 bg-[#2a2a2a] hover:bg-[#333] text-white py-3 px-4 rounded-xl border border-[#444] transition-all font-medium text-sm group"
             >
               <Monitor className="w-4 h-4 text-[#25D366] group-hover:scale-110 transition-transform" />
               WhatsApp Web
-            </button>
-            <button
-              onClick={openApp}
+            </a>
+            <a
+              href={`whatsapp://send?phone=${finalPhone}&text=${encodedMessage}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onClose}
               className="flex items-center justify-center gap-2 bg-[#2a2a2a] hover:bg-[#333] text-white py-3 px-4 rounded-xl border border-[#444] transition-all font-medium text-sm group"
             >
               <Smartphone className="w-4 h-4 text-[#25D366] group-hover:scale-110 transition-transform" />
               App Desktop/Mobile
-            </button>
-            <button
-              onClick={openApi}
+            </a>
+            <a
+              href={`https://api.whatsapp.com/send?phone=${finalPhone}&text=${encodedMessage}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onClose}
               className="flex items-center justify-center gap-2 bg-[#2a2a2a] hover:bg-[#333] text-white py-3 px-4 rounded-xl border border-[#444] transition-all font-medium text-sm group sm:col-span-2"
             >
               <MessageCircle className="w-4 h-4 text-[#25D366] group-hover:scale-110 transition-transform" />
               Padrão (API Oficial)
-            </button>
+            </a>
           </div>
 
           <div className="mt-2 flex justify-end">
