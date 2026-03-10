@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { MessageCircle, User, Filter, BellRing, X, Calculator, CalendarPlus, FileText, ClipboardPaste, Loader2, Activity, Edit3, CheckCircle2 } from 'lucide-react';
+import { MessageCircle, User, Filter, BellRing, X, Calculator, CalendarPlus, FileText, ClipboardPaste, Loader2, Activity, Edit3, CheckCircle2, Sparkles } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, onSnapshot, doc, updateDoc, addDoc } from 'firebase/firestore';
 import { WhatsAppModal } from './WhatsAppModal';
@@ -122,6 +122,7 @@ const initialLeads: Lead[] = [
 export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) => void }) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
+  const [isGeneratingResponse, setIsGeneratingResponse] = useState<string | null>(null);
   const isInitialLoad = useRef(true);
   const [newLeadAlert, setNewLeadAlert] = useState<{nome: string, source: string} | null>(null);
   
@@ -337,6 +338,65 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
       setLeads(prev => prev.map(l => 
         l.id === id ? { ...l, contacted: true, historico: newHistorico } : l
       ));
+    }
+  };
+
+  const generateSuggestedResponse = async (lead: Lead) => {
+    setIsGeneratingResponse(lead.id);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+
+      const historicoTexto = lead.historico 
+        ? lead.historico.slice().reverse().slice(0, 5).map(h => `${h.acao} em ${new Date(h.data).toLocaleDateString()}`).join(', ')
+        : 'Nenhum histórico';
+
+      const prompt = `Você é um consultor de vendas de energia solar da empresa MGS Solar Command.
+      Crie uma mensagem de acompanhamento (follow-up) curta, amigável e altamente persuasiva para enviar via WhatsApp para o cliente.
+      
+      Dados do cliente:
+      - Nome: ${lead.nome}
+      - Status atual no funil de vendas: ${lead.status}
+      - Consumo médio de energia: ${lead.consumo} kWh
+      - Notas do vendedor: ${lead.notas || 'Nenhuma nota'}
+      - Histórico recente: ${historicoTexto}
+      
+      A mensagem deve ser direta, usar emojis adequados, e ter um tom profissional mas próximo. Não inclua placeholders como [Seu Nome], assine como "Equipe MGS Solar Command".`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+      });
+
+      if (response.text) {
+        setWaModalData({
+          phone: lead.telefone,
+          message: response.text.trim(),
+          name: lead.nome
+        });
+        setWaModalOpen(true);
+        
+        const newHistorico = lead.historico ? [...lead.historico] : [];
+        newHistorico.push({ data: new Date().toISOString(), acao: "Resposta sugerida por IA gerada" });
+        
+        if (isFirebaseConnected && db) {
+          try {
+            await updateDoc(doc(db, 'leads_solar', lead.id), {
+              historico: newHistorico
+            });
+          } catch (error) {
+            console.error("Erro ao registrar histórico de IA:", error);
+          }
+        } else {
+          setLeads(prev => prev.map(l => 
+            l.id === lead.id ? { ...l, historico: newHistorico } : l
+          ));
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao gerar resposta:", error);
+      alert("Não foi possível gerar a resposta. Verifique a chave da API do Gemini.");
+    } finally {
+      setIsGeneratingResponse(null);
     }
   };
 
@@ -920,6 +980,14 @@ export function CRM({ onNavigateToPro }: { onNavigateToPro?: (lead: ActiveLead) 
                         >
                           <MessageCircle size={16} />
                           {taParado ? 'COBRAR AGORA (WhatsApp)' : 'Abrir Chat'}
+                        </button>
+                        <button 
+                          onClick={() => generateSuggestedResponse(lead)} 
+                          disabled={isGeneratingResponse === lead.id}
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors text-sm disabled:opacity-50"
+                        >
+                          {isGeneratingResponse === lead.id ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                          {isGeneratingResponse === lead.id ? 'Gerando...' : 'Gerar Resposta com IA'}
                         </button>
                       </div>
                     </div>
